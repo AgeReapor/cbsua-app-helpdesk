@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "skills": {
+    "code-style": {
+      "source": "frappe/skills",
+      "sourceType": "github",
+      "skillPath": "skills/code-style/SKILL.md",
+      "computedHash": "158e8cc8fa680cd8650e11f42cb940757d70353a607cd3144e6158d8add91e66"
+    },
+    "deep-app-audit": {
+      "source": "frappe/skills",
+      "sourceType": "github",
+      "skillPath": "skills/deep-app-audit/SKILL.md",
+      "computedHash": "55c7a4aceb6f4808022f766d10c744f4a5a3ccfa45e0a7b2328689e2e4879db5"
+    },
+    "draft-security-advisory": {
+      "source": "frappe/skills",
+      "sourceType": "github",
+      "skillPath": "skills/draft-security-advisory/SKILL.md",
+      "computedHash": "e36d44f8011830ef75765dc830ac4631a957632bcdd33db130df80a3e75b098e"
+    },
+    "fix-issue": {
+      "source": "frappe/skills",
+      "sourceType": "github",
+      "skillPath": "skills/fix-issue/SKILL.md",
+      "computedHash": "0e6a5d563dd1695ce1cf7867e903aeae89fa8ef2a404b55a8ad39368253e9447"
+    },
+    "frappe-app-dev": {
+      "source": "frappe/skills",
+      "sourceType": "github",
+      "skillPath": "skills/frappe-app-dev/SKILL.md",
+      "computedHash": "ed395503e44d58bd295f9b24cfc4fda2f23b5bd0e8d986192fce4104ea564322"
+    },
+    "frappe-code-review": {
+      "source": "frappe/skills",
+      "sourceType": "github",
+      "skillPath": "skills/frappe-code-review/SKILL.md",
+      "computedHash": "0f7066c0db25a446d6b41fe9af4a5fa2ec9eb20056ed4d2cf6822664a1217fad"
+    },
+    "guard-review": {
+      "source": "frappe/skills",
+      "sourceType": "github",
+      "skillPath": "skills/guard-review/SKILL.md",
+      "computedHash": "ce9315e86fc06ea699eae22d207148254e55c5d07e5c6e30092a5dcf4cdfb177"
+    },
+    "resolve-backport-conflicts": {
+      "source": "frappe/skills",
+      "sourceType": "github",
+      "skillPath": "skills/resolve-backport-conflicts/SKILL.md",
+      "computedHash": "0b72672daf96ef494b17ca20cdcb8a203fb0e0c4b8aa368280ec3aa1d996a01a"
+    },
+    "review-ui-states": {
+      "source": "frappe/skills",
+      "sourceType": "github",
+      "skillPath": "skills/review-ui-states/SKILL.md",
+      "computedHash": "7f159f41f7fbbf091183b223831315359c86af3c0fab50e4afa2b2c5eff4cad2"
+    },
+    "ship-it": {
+      "source": "frappe/skills",
+      "sourceType": "github",
+      "skillPath": "skills/ship-it/SKILL.md",
+      "computedHash": "9ce337891e28dc2ef2d747edb2ed5af90997e972ecc7ee02a6eddf98f78ce02a"
+    },
+    "technical-writing": {
+      "source": "frappe/skills",
+      "sourceType": "github",
+      "skillPath": "skills/technical-writing/SKILL.md",
+      "computedHash": "08470ffb6aa0878e95a06e540a8ded61c122db0450c6f3991d7b56477a202faa"
+    },
+    "ui-design": {
+      "source": "frappe/skills",
+      "sourceType": "github",
+      "skillPath": "skills/ui-design/SKILL.md",
+      "computedHash": "c3dec2ce532f6f99bcf827030430dc4bb1528f3d654f2736a3612f85e4afcf28"
+    }
+  }
+}
