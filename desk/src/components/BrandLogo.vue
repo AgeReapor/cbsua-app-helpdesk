@@ -2,7 +2,7 @@
   <img
     :src="config.brandLogo"
     :alt="config.brandName"
-    class="h-8 w-8 shrink-0 object-contain"
+    class="h-8 w-8 shrink-0 rounded-full bg-surface-green-1 p-1 object-contain ring-1 ring-outline-green-2"
   />
 </template>
 

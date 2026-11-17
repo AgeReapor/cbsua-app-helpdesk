@@ -12,9 +12,10 @@ agent desk and the Studio customer portal.
 - Use CBSUA artwork in the installable desk application's manifest.
 - Preserve existing `HD Settings` and `Website Settings` overrides.
 
-This is an identity integration, not the complete CBSUA visual redesign. Layout,
-typography, component states, and the institutional color system are intentionally
-left for a follow-up styling change.
+This is an identity integration plus a restrained first styling pass. The
+institutional accent treatment is documented in
+[ CBSUA UI styling ](cbsua-ui-styling.md). A complete visual redesign remains
+a separate follow-up.
 
 ## Source assets
 

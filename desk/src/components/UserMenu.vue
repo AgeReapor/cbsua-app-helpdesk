@@ -20,7 +20,7 @@
               : 'ms-2 w-auto opacity-100'
           "
         >
-          <div class="text-base-medium leading-none text-ink-gray-9 truncate">
+          <div class="text-base-medium leading-none text-ink-green-7 truncate">
             {{ config.brandName || "Helpdesk" }}
           </div>
           <div class="mt-1 text-sm text-ink-gray-7">
