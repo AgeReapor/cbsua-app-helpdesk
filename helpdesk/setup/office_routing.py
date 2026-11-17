@@ -9,18 +9,20 @@ def _is_privileged():
 
 
 def set_ticket_defaults(doc, method=None):
-    """Set the configured default office for newly created legacy/API tickets."""
-    if not doc.is_new() or doc.office:
+    """Apply office defaults and route new tickets by request type."""
+    if not doc.is_new():
         return
-    default_office = frappe.db.get_single_value("HD Settings", "default_cb_office")
-    if not default_office or not frappe.db.get_value(
-        "CB Office", {"name": default_office, "enabled": 1}, "name"
-    ):
-        default_office = frappe.db.get_value(
-            "CB Office", {"is_default": 1, "enabled": 1}, "name"
-        )
-    if default_office:
-        doc.office = default_office
+
+    if not doc.office:
+        default_office = frappe.db.get_single_value("HD Settings", "default_cb_office")
+        if not default_office or not frappe.db.get_value(
+            "CB Office", {"name": default_office, "enabled": 1}, "name"
+        ):
+            default_office = frappe.db.get_value(
+                "CB Office", {"is_default": 1, "enabled": 1}, "name"
+            )
+        if default_office:
+            doc.office = default_office
 
     # Email integrations and internal agent-created tickets predate the portal's
     # explicit request-type selector. Give those flows the office's Inquiry type
@@ -39,9 +41,9 @@ def set_ticket_defaults(doc, method=None):
         if request_type:
             doc.request_type = request_type
 
-    # Route new tickets by the selected request type. Keep explicit agent
-    # assignments; server validation below rejects cross-office team choices.
-    if doc.is_new() and doc.request_type and not doc.agent_group:
+    # Route by the selected request type. Preserve an explicit team selection;
+    # validation rejects a team that is not mapped to the ticket's office.
+    if doc.office and doc.request_type and not doc.agent_group:
         default_team = frappe.db.get_value(
             "CB Office Request Type",
             {"name": doc.request_type, "office": doc.office, "enabled": 1},
