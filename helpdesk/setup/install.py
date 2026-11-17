@@ -34,7 +34,6 @@ def after_install():
     add_default_categories_and_articles()
     add_default_ticket_priorities()
     add_default_sla()
-    add_default_agent_groups()
     update_agent_role_permissions()
     add_agent_manager_permissions()
     setup_comments_and_notifications()
@@ -178,16 +177,6 @@ def add_default_ticket_priorities():
         doc.name = priority
         doc.level = priority
         doc.insert()
-
-
-def add_default_agent_groups():
-    agent_groups = ["Billing", "Product Experts"]
-
-    for agent_group in agent_groups:
-        if not frappe.db.exists("HD Team", agent_group):
-            agent_group_doc = frappe.new_doc("HD Team")
-            agent_group_doc.team_name = agent_group
-            agent_group_doc.insert(ignore_mandatory=True)
 
 
 def update_agent_role_permissions():
