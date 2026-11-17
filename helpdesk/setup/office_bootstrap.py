@@ -29,10 +29,10 @@ def bootstrap_offices():
         if not frappe.db.exists("CB Office", {"office_code": office["office_code"]}):
             legacy_name = frappe.db.get_value(
                 "HD Office", {"office_code": office["office_code"]}, "name"
-            )
+            ) if frappe.db.exists("DocType", "HD Office") else None
             legacy = frappe.db.get_value("HD Office", legacy_name, "*", as_dict=True) if legacy_name else {}
             values = {key: value for key, value in (legacy or {}).items() if key in ("office_name", "office_code", "enabled", "is_default", "description")}
-            frappe.get_doc({"doctype": "CB Office", "enabled": 1, **values, **office}).insert(
+            frappe.get_doc({"doctype": "CB Office", **office, "enabled": 1, **values}).insert(
                 ignore_permissions=True
             )
 
@@ -52,7 +52,7 @@ def bootstrap_offices():
         office = frappe.db.get_value("CB Office", {"office_code": office_code}, "name")
         if not office or frappe.db.exists("CB Office Request Type", code):
             continue
-        legacy = frappe.db.get_value("HD Office Request Type", code, "*", as_dict=True)
+        legacy = frappe.db.get_value("HD Office Request Type", code, "*", as_dict=True) if frappe.db.exists("DocType", "HD Office Request Type") else {}
         values = {key: value for key, value in (legacy or {}).items() if key in ("request_type_name", "request_type_code", "enabled", "display_order", "description")}
         frappe.get_doc({
             "doctype": "CB Office Request Type",
