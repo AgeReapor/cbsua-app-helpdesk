@@ -3,13 +3,14 @@
     class="flex flex-col items-center justify-center gap-4 py-16 text-center"
   >
     <div
-      class="flex size-[58px] items-center justify-center rounded-full bg-surface-gray-1"
+      class="flex size-16 items-center justify-center rounded-full bg-surface-gray-1"
     >
-      <component :is="glyph" class="size-6 text-ink-gray-6" />
+      <component :is="glyph" class="size-6 text-ink-gray-7" />
     </div>
     <div class="flex flex-col items-center gap-1">
-      <div class="text-base font-medium text-ink-gray-6">{{ title }}</div>
-      <div v-if="description" class="max-w-60 text-p-sm text-ink-gray-5">
+      <!-- A clear title/description contrast makes empty states scannable. -->
+      <div class="text-base font-semibold text-ink-gray-9">{{ title }}</div>
+      <div v-if="description" class="max-w-72 text-p-sm text-ink-gray-6">
         {{ description }}
       </div>
     </div>

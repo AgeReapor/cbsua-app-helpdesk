@@ -51,13 +51,14 @@ function Brand() {
       src: props.logo || "/assets/helpdesk/desk/cbsua/cbsua-logo-2400.png",
       alt: "",
       "aria-hidden": "true",
-      class: "size-7 shrink-0 rounded-full bg-surface-green-1 p-0.5 object-contain ring-1 ring-outline-green-2",
+      // Use a contained, neutral frame so the full seal stays legible at nav size.
+      class: "size-7 shrink-0 rounded-4 bg-surface-gray-1 p-0.5 object-contain ring-1 ring-outline-gray-2",
     }),
     !isTicketPage.value &&
       h(
         "span",
         {
-          class: "hidden truncate text-base-medium text-ink-green-7 sm:block",
+          class: "hidden truncate text-base-medium text-ink-gray-9 sm:block",
         },
         props.name
       ),

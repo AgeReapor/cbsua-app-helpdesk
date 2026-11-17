@@ -20,7 +20,8 @@
               : 'ms-2 w-auto opacity-100'
           "
         >
-          <div class="text-base-medium leading-none text-ink-green-7 truncate">
+          <!-- Neutral text keeps identity clear without competing with ticket state colors. -->
+          <div class="text-base-medium leading-none text-ink-gray-9 truncate">
             {{ config.brandName || "Helpdesk" }}
           </div>
           <div class="mt-1 text-sm text-ink-gray-7">
