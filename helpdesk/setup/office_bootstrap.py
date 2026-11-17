@@ -1,8 +1,9 @@
-"""Idempotent CBSUA office and request-type bootstrap.
+"""Idempotent CBSUA office, request-type, and team bootstrap.
 
 Safe to run after install and on every migrate. Existing office settings are
-preserved; only missing baseline records are inserted. Teams are deliberately
-not assigned automatically because membership is an operational decision.
+preserved; only missing baseline records are inserted. Office teams are created
+without staff membership because team membership is an operational decision.
+Request types receive configurable default-team destinations.
 """
 
 import frappe
