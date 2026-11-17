@@ -370,6 +370,8 @@ function isRequired(row) {
 }
 
 const missingFields = computed(() => [
+  ...(office.value ? [] : [__("Office")]),
+  ...(requestType.value ? [] : [__("Type of Request")]),
   ...(subject.value.trim() ? [] : [__("Subject")]),
   ...(isContentEmpty(description.value) ? [__("Description")] : []),
   ...visibleFields.value
