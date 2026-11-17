@@ -10,7 +10,6 @@
   "team_name",
   "assignment_rule",
   "users",
-  "offices",
   "column_break_feto",
   "disabled",
   "ignore_restrictions"
@@ -56,14 +55,6 @@
    "fieldname": "disabled",
    "fieldtype": "Check",
    "label": "Disabled"
-  },
-  {
-   "fieldname": "offices",
-   "label": "Assigned Offices",
-   "fieldtype": "Table MultiSelect",
-   "options": "CB Team Office",
-   "insert_after": "users",
-   "description": "Offices this team is authorized to handle. A team may serve multiple offices."
   }
  ],
  "index_web_pages_for_search": 1,
