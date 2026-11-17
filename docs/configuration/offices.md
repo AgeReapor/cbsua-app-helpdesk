@@ -2,7 +2,7 @@
 
 ## Where to manage offices
 
-In Desk, open **Helpdesk → CBSUA Office Routing → Offices**. This opens the `CB Office` list where an administrator can create, edit, enable, disable, and choose the default office.
+In Desk, open **Helpdesk → CBSUA Office Routing → Offices**. This opens the `CB Office` list where an administrator can create, edit, enable, and disable offices.
 
 The baseline records are ICT Office, Registrar's Office, Admissions Office, and Cashier's Office. Each office has a unique office code. Disabling an office removes it from customer ticket creation without deleting historical tickets.
 
