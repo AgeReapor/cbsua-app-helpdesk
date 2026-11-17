@@ -52,5 +52,14 @@ def bootstrap_offices():
 
 
 def execute():
-    """Patch entry point used by patches.txt and after_migrate."""
+    """Patch entry point used by patches.txt and after_migrate.
+
+    Existing sites do not run after_install during an app upgrade, so ensure
+    app-owned ticket/team custom fields are installed as part of migration too.
+    """
+    from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+    from helpdesk.setup.install import get_custom_fields
+
+    create_custom_fields(get_custom_fields(), update=True)
     bootstrap_offices()
