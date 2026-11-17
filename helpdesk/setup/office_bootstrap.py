@@ -76,6 +76,7 @@ def execute():
     from helpdesk.setup.install import get_custom_fields
 
     create_custom_fields(get_custom_fields(), update=True)
+    migrate_legacy_office_records()
     bootstrap_offices()
     migrate_legacy_team_offices()
     remove_legacy_office_doctypes()
@@ -91,6 +92,44 @@ def add_cbsua_link_permissions():
             add_permission(doctype, role)
             update_permission_property(doctype, role, 0, "read", 1)
             update_permission_property(doctype, role, 0, "select", 1)
+
+
+def migrate_legacy_office_records():
+    """Copy all existing HD office masters before retiring the old DocTypes."""
+    if frappe.db.exists("DocType", "HD Office"):
+        for row in frappe.get_all(
+            "HD Office",
+            fields=["office_name", "office_code", "enabled", "is_default", "description"],
+        ):
+            if not frappe.db.exists("CB Office", {"office_code": row.office_code}):
+                frappe.get_doc({"doctype": "CB Office", **row}).insert(
+                    ignore_permissions=True
+                )
+
+    if frappe.db.exists("DocType", "HD Office Request Type") and frappe.db.exists(
+        "DocType", "HD Office"
+    ):
+        for row in frappe.get_all(
+            "HD Office Request Type",
+            fields=[
+                "request_type_name",
+                "request_type_code",
+                "office",
+                "enabled",
+                "display_order",
+                "description",
+            ],
+        ):
+            if frappe.db.exists("CB Office Request Type", row.request_type_code):
+                continue
+            office_code = frappe.db.get_value("HD Office", row.office, "office_code")
+            office = frappe.db.get_value(
+                "CB Office", {"office_code": office_code}, "name"
+            )
+            if office:
+                frappe.get_doc(
+                    {"doctype": "CB Office Request Type", **row, "office": office}
+                ).insert(ignore_permissions=True)
 
 
 def migrate_legacy_team_offices():
