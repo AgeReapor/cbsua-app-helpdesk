@@ -39,6 +39,17 @@ def set_ticket_defaults(doc, method=None):
         if request_type:
             doc.request_type = request_type
 
+    # Route new tickets by the selected request type. Keep explicit agent
+    # assignments; server validation below rejects cross-office team choices.
+    if doc.is_new() and doc.request_type and not doc.agent_group:
+        default_team = frappe.db.get_value(
+            "CB Office Request Type",
+            {"name": doc.request_type, "office": doc.office, "enabled": 1},
+            "default_team",
+        )
+        if default_team:
+            doc.agent_group = default_team
+
 
 def validate_ticket_office_routing(doc, method=None):
     """Validate office/type/team consistency for every ticket write."""
@@ -62,11 +73,7 @@ def validate_ticket_office_routing(doc, method=None):
     elif doc.is_new():
         frappe.throw(_("Select a type of request for the selected office."))
 
-    if doc.agent_group and (
-        doc.is_new()
-        or doc.has_value_changed("agent_group")
-        or doc.has_value_changed("office")
-    ):
+    if doc.agent_group:
         team = frappe.get_doc("HD Team", doc.agent_group)
         allowed_offices = {row.office for row in team.get("offices", []) if row.office}
         if doc.office not in allowed_offices:
