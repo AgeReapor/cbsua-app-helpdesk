@@ -49,7 +49,7 @@ function Brand() {
   return [
     props.logo
       ? h("img", {
-          src: props.logo,
+          src: props.logo || '/assets/helpdesk/desk/cbsua/cbsua-logo-2400.png',
           alt: "",
           "aria-hidden": "true",
           class: "size-6 shrink-0 rounded-2 object-contain",

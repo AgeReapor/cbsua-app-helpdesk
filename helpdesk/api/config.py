@@ -3,6 +3,10 @@ from frappe.utils import get_user_date_format, get_user_time_format
 
 from helpdesk.utils import is_agent
 
+CBSUA_BRAND_NAME = "CBSUA Helpdesk"
+CBSUA_BRAND_LOGO = "/assets/helpdesk/desk/cbsua/cbsua-logo-2400.png"
+CBSUA_FAVICON = "/assets/helpdesk/desk/cbsua/favicon.ico"
+
 # What the knowledge base needs to render for a guest
 GUEST_FIELDS = [
     "brand_name",
@@ -50,6 +54,8 @@ def get_config():
         frappe.get_value(doctype="HD Settings", fieldname=fields, as_dict=True) or {}
     )
     res.update({field: values.get(field) for field in fields})
+    res.brand_name = res.brand_name or CBSUA_BRAND_NAME
+    res.brand_logo = res.brand_logo or CBSUA_BRAND_LOGO
     res.date_format = get_user_date_format()
     res.time_format = get_user_time_format()
 
@@ -70,5 +76,5 @@ def get_favicon() -> str:
     return (
         frappe.db.get_single_value("HD Settings", "favicon")
         or frappe.db.get_single_value("Website Settings", "favicon")
-        or "/assets/helpdesk/desk/favicon.svg"
+        or CBSUA_FAVICON
     )

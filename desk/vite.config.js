@@ -57,32 +57,32 @@ export default defineConfig(async ({ mode }) => {
         },
         manifest: {
           display: "standalone",
-          name: "Frappe Helpdesk",
-          short_name: "Helpdesk",
+          name: "CBSUA Helpdesk",
+          short_name: "CBSUA",
           start_url: "/helpdesk",
           description:
-            "Modern, Streamlined, Free and Open Source Customer Service Software",
+            "Central Bicol State University of Agriculture Helpdesk and service support.",
           icons: [
             {
-              src: "/assets/helpdesk/desk/manifest/manifest-icon-192.maskable.png",
+              src: "/assets/helpdesk/desk/cbsua/android-chrome-192x192.png",
               sizes: "192x192",
               type: "image/png",
               purpose: "any",
             },
             {
-              src: "/assets/helpdesk/desk/manifest/manifest-icon-192.maskable.png",
+              src: "/assets/helpdesk/desk/cbsua/android-chrome-192x192.png",
               sizes: "192x192",
               type: "image/png",
               purpose: "maskable",
             },
             {
-              src: "/assets/helpdesk/desk/manifest/manifest-icon-512.maskable.png",
+              src: "/assets/helpdesk/desk/cbsua/android-chrome-512x512.png",
               sizes: "512x512",
               type: "image/png",
               purpose: "any",
             },
             {
-              src: "/assets/helpdesk/desk/manifest/manifest-icon-512.maskable.png",
+              src: "/assets/helpdesk/desk/cbsua/android-chrome-512x512.png",
               sizes: "512x512",
               type: "image/png",
               purpose: "maskable",
