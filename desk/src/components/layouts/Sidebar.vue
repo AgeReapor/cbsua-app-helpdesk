@@ -47,7 +47,7 @@
     v-model="showHelpModal"
     v-model:articles="articles"
     appName="helpdesk"
-    title="Frappe Helpdesk"
+    title="CBSUA Helpdesk"
     :logo="logo"
     docsLink="https://docs.frappe.io/helpdesk"
     :afterSkip="(step: string) => capture('onboarding_step_skipped_' + step)"
@@ -62,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import HDLogo from "@/assets/logos/HDLogo.vue";
+import BrandLogo from "@/components/BrandLogo.vue";
 import {
   ArticleIcon,
   FrappeCloudIcon,
@@ -190,7 +190,7 @@ const profileSettings = computed(() => [
 ]);
 
 const logo = h(
-  HDLogo,
+  BrandLogo,
   {
     class: "h-12 w-12",
   },

@@ -1,6 +1,7 @@
 import { createResource } from "frappe-ui";
 import { defineStore } from "pinia";
 import { computed, ComputedRef } from "vue";
+import cbsuaLogo from "@/assets/logos/cbsua-logo-2400.png";
 import { globalStore } from "./globalStore";
 
 export const useConfigStore = defineStore("config", () => {
@@ -11,9 +12,13 @@ export const useConfigStore = defineStore("config", () => {
   });
 
   const config = computed(() => configResource.data || {});
-  const brandName = computed(() => config.value.brand_name);
-  const brandLogo = computed(() => config.value.brand_logo);
-  const favicon = computed(() => config.value.favicon);
+  const brandName = computed(
+    () => config.value.brand_name || "CBSUA Helpdesk"
+  );
+  const brandLogo = computed(() => config.value.brand_logo || cbsuaLogo);
+  const favicon = computed(
+    () => config.value.favicon || "/assets/helpdesk/desk/cbsua/favicon.ico"
+  );
 
   const teamRestrictionApplied = computed(
     () => !!parseInt(config.value.restrict_tickets_by_agent_group)

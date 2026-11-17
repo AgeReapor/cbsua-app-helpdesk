@@ -47,19 +47,17 @@ const isTicketPage = computed(
 
 function Brand() {
   return [
-    props.logo
-      ? h("img", {
-          src: props.logo,
-          alt: "",
-          "aria-hidden": "true",
-          class: "size-6 shrink-0 rounded-2 object-contain",
-        })
-      : h("span", { class: "size-6 shrink-0" }),
+    h("img", {
+      src: props.logo || "/assets/helpdesk/desk/cbsua/cbsua-logo-2400.png",
+      alt: "",
+      "aria-hidden": "true",
+      class: "size-7 shrink-0 rounded-full bg-surface-green-1 p-0.5 object-contain ring-1 ring-outline-green-2",
+    }),
     !isTicketPage.value &&
       h(
         "span",
         {
-          class: "hidden truncate text-base-medium text-ink-gray-9 sm:block",
+          class: "hidden truncate text-base-medium text-ink-green-7 sm:block",
         },
         props.name
       ),

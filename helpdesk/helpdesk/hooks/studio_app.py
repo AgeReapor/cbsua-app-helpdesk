@@ -42,4 +42,4 @@ def escape_for_shell(value: str | None) -> str:
 
 
 def get_brand_name() -> str:
-    return frappe.db.get_single_value("HD Settings", "brand_name") or "Helpdesk"
+    return frappe.db.get_single_value("HD Settings", "brand_name") or "CBSUA Helpdesk"
