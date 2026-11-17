@@ -15,9 +15,7 @@ The installer and migration bootstrap create these office teams:
 | Admissions Support Team | Admissions Office |
 | Cashier Support Team | Cashier's Office |
 
-The generic **Billing** and **Product Experts** teams remain available for
-existing Helpdesk workflows. They are not automatically authorized for any
-CBSUA office.
+The CBSUA installer no longer seeds the generic **Billing** or **Product Experts** teams. Existing records on upgraded sites are left untouched; this change does not delete historical team records.
 
 ## Configure agents
 
