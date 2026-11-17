@@ -304,19 +304,11 @@ def get_custom_fields():
                 "insert_after": "cbsua_routing_tab",
             },
             {
-                "fieldname": "office_routing_enabled",
-                "label": "Enable Office Routing",
-                "fieldtype": "Check",
-                "default": "1",
-                "insert_after": "cbsua_routing_section",
-                "description": "Require tickets to have a destination office and an office-specific request type.",
-            },
-            {
                 "fieldname": "default_cb_office",
                 "label": "Default Office",
                 "fieldtype": "Link",
                 "options": "CB Office",
-                "insert_after": "office_routing_enabled",
+                "insert_after": "cbsua_routing_section",
             },
         ],
         "HD Ticket": [
