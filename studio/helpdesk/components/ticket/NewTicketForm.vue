@@ -204,6 +204,7 @@ const emit = defineEmits<{
 }>();
 
 const router = useRouter();
+const model = reactive<Record<string, any>>({});
 const subject = ref(props.initialSubject);
 const description = ref("");
 // These controls are outside the HD Ticket template so every office can own an
@@ -239,8 +240,12 @@ watch(office, async (value) => {
     if (office.value === value) requestTypes.value = rows || [];
   } finally {
     if (office.value === value) loadingRequestTypes.value = false;
+  } catch {
+    if (office.value === value) requestTypes.value = [];
+  } finally {
+    if (office.value === value) loadingRequestTypes.value = false;
   }
-});
+}, { immediate: true });
 
 watch(requestType, (value) => {
   model.request_type = value || "";
@@ -268,7 +273,6 @@ const skeletonFieldCount = useRememberedCount(
   0
 );
 
-const model = reactive<Record<string, any>>({});
 // Original fields, for `applyFilters` to restore.
 let oldFields: any[] = [];
 
