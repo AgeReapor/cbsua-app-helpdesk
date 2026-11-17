@@ -9,6 +9,23 @@
         class="prose prose-sm max-w-none text-ink-gray-7"
         v-html="about"
       />
+      <!-- Office is the routing destination; request types are fetched for this office only. -->
+      <div class="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+        <div class="flex flex-col gap-1.5">
+          <label for="cbsua-office" class="text-base font-medium text-ink-gray-7">{{ __("Office") }}</label>
+          <select id="cbsua-office" v-model="office" required class="h-10 w-full rounded-md border border-outline-elevation-2 bg-surface-white px-3 text-base text-ink-gray-8 focus:border-outline-gray-4 focus:outline-none">
+            <option value="" disabled>{{ __("Select an office") }}</option>
+            <option v-for="item in offices.data || []" :key="item.name" :value="item.name">{{ item.office_name }}</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label for="cbsua-request-type" class="text-base font-medium text-ink-gray-7">{{ __("Type of Request") }}</label>
+          <select id="cbsua-request-type" v-model="requestType" required :disabled="!office || loadingRequestTypes || !requestTypes.length" class="h-10 w-full rounded-md border border-outline-elevation-2 bg-surface-white px-3 text-base text-ink-gray-8 disabled:cursor-not-allowed disabled:opacity-60">
+            <option value="" disabled>{{ loadingRequestTypes ? __("Loading request types…") : __("Select a request type") }}</option>
+            <option v-for="item in requestTypes" :key="item.name" :value="item.name">{{ item.request_type_name }}</option>
+          </select>
+        </div>
+      </div>
       <div class="flex w-full flex-col gap-2">
         <FormControl
           v-model="subject"
@@ -189,6 +206,45 @@ const emit = defineEmits<{
 const router = useRouter();
 const subject = ref(props.initialSubject);
 const description = ref("");
+// These controls are outside the HD Ticket template so every office can own an
+// independent set of request types. Values are copied into the submitted model.
+const offices = createResource({
+  url: "helpdesk.setup.office_routing.get_enabled_offices",
+  auto: true,
+});
+const office = ref("");
+const requestTypes = ref<any[]>([]);
+const requestType = ref("");
+const loadingRequestTypes = ref(false);
+
+watch(
+  () => offices.data,
+  (rows) => {
+    if (!office.value && rows?.length) {
+      office.value = rows.find((row) => row.is_default)?.name || rows[0].name;
+    }
+  },
+  { immediate: true }
+);
+
+watch(office, async (value) => {
+  requestType.value = "";
+  requestTypes.value = [];
+  model.office = value || "";
+  model.request_type = "";
+  if (!value) return;
+  loadingRequestTypes.value = true;
+  try {
+    const rows = await call("helpdesk.setup.office_routing.get_office_request_types", { office: value });
+    if (office.value === value) requestTypes.value = rows || [];
+  } finally {
+    if (office.value === value) loadingRequestTypes.value = false;
+  }
+});
+
+watch(requestType, (value) => {
+  model.request_type = value || "";
+});
 const attachments = ref([]);
 const isCreating = ref(false);
 const uploading = ref(0);
