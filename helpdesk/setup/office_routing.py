@@ -102,7 +102,7 @@ def get_office_request_types(office: str) -> list[dict]:
     )
 
 
-@frappe.whitelist(methods=["GET"])
+@frappe.whitelist()
 def get_enabled_offices() -> list[dict]:
     """Enabled offices for the customer and agent ticket forms."""
     return frappe.get_list(
