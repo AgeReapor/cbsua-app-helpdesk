@@ -8,6 +8,7 @@ CBSUA-owned DocTypes live in `helpdesk/cbsua/doctype/` and the `CBSUA` module. T
 
 - `after_install` installs CBSUA fields, seeds office/request-type records, and grants Link permissions.
 - `patches.txt` and `after_migrate` call the idempotent bootstrap so existing installations receive the same setup.
+- The migration copies existing office/request-type records and team-office child rows from the earlier HD-prefixed implementation into CB DocTypes, then retires the legacy HD office DocTypes.
 - Helpdesk workspace exposes direct shortcuts to Offices and Office Request Types; HD Settings exposes the CBSUA Routing tab and default office.
 
 ## Link permissions
