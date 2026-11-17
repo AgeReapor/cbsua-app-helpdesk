@@ -236,10 +236,11 @@ watch(office, async (value) => {
   if (!value) return;
   loadingRequestTypes.value = true;
   try {
-    const rows = await call("helpdesk.setup.office_routing.get_office_request_types", { office: value });
+    const rows = await call(
+      "helpdesk.setup.office_routing.get_office_request_types",
+      { office: value }
+    );
     if (office.value === value) requestTypes.value = rows || [];
-  } finally {
-    if (office.value === value) loadingRequestTypes.value = false;
   } catch {
     if (office.value === value) requestTypes.value = [];
   } finally {
