@@ -15,7 +15,7 @@ from .file import create_helpdesk_folder
 from .ticket_feedback import create_ticket_feedback_options
 from .ticket_type import create_fallback_ticket_type, create_ootb_ticket_types
 from .welcome_ticket import create_welcome_ticket
-from .office_bootstrap import bootstrap_offices
+from .office_bootstrap import add_cbsua_link_permissions, bootstrap_offices
 
 
 def before_uninstall():
@@ -44,6 +44,7 @@ def after_install():
     create_ticket_feedback_options()
     # Seed CBSUA offices and their initial request types after the DocTypes exist.
     bootstrap_offices()
+    add_cbsua_link_permissions()
     add_property_setters()
     add_website_settings_permission()
     add_default_views()
