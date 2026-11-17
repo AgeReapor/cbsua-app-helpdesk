@@ -1,15 +1,24 @@
-# Office-aware boot refactor
+# CBSUA Office Routing Boot Refactor
+
+## Module organization
+
+CBSUA-owned DocTypes live in `helpdesk/cbsua/doctype/` and the `CBSUA` module. They use the `CB` prefix: `CB Office`, `CB Office Request Type`, and `CB Team Office`. Existing Frappe Helpdesk entities remain `HD` DocTypes; their app-owned fields are installed through `get_custom_fields()`.
 
 ## Lifecycle
 
-- `after_install` calls `bootstrap_offices()` after the app's standard DocTypes and defaults are installed.
-- `patches.txt` invokes `helpdesk.setup.office_bootstrap.execute` after model sync for existing installations.
-- `after_migrate` runs the same idempotent bootstrap so a missed or interrupted baseline setup can be repaired.
+- `after_install` installs CBSUA fields, seeds office/request-type records, and grants Link permissions.
+- `patches.txt` and `after_migrate` call the idempotent bootstrap so existing installations receive the same setup.
+- Helpdesk workspace exposes direct shortcuts to Offices and Office Request Types; HD Settings exposes the CBSUA Routing tab and default office.
 
-## Idempotency
+## Link permissions
 
-The bootstrap inserts only missing office codes and request type codes. It does not overwrite labels, enabled flags, default selections, office-team mappings, or team members. It does not create or assign teams automatically.
+Frappe Link search requires `select` permission, not merely `read`. The bootstrap grants both to System Manager, Administrator, Agent Manager, Agent, HD Customer, and HD Customer Manager for the two linked master DocTypes.
 
-## Validation
+## Acceptance checks
 
-`helpdesk.setup.office_routing` centralizes ticket defaults, office/type validation, team-office checks, and resolution membership checks. Hooks run for desk, portal, API, and import document writes.
+- [ ] Offices and request types are accessible from the Helpdesk workspace.
+- [ ] Teams are accessible from Helpdesk → Agent Configuration → Team and show Assigned Offices.
+- [ ] HD Settings exposes CBSUA Routing, enable/disable, and default office.
+- [ ] Administrator and System Manager can search and select offices in Link fields.
+- [ ] Customers can see only enabled offices and request types for the chosen office.
+- [ ] Teams cannot be assigned tickets outside their mapped offices.
