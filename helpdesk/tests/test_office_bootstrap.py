@@ -18,12 +18,12 @@ class TestOfficeBootstrap(FrappeTestCase):
             "CSH": {"Inquiry"},
         }
         for code, labels in expected.items():
-            office = frappe.db.get_value("HD Office", {"office_code": code}, "name")
+            office = frappe.db.get_value("CB Office", {"office_code": code}, "name")
             self.assertTrue(office)
             actual = {
                 row.request_type_name
                 for row in frappe.get_all(
-                    "HD Office Request Type",
+                    "CB Office Request Type",
                     filters={"office": office, "enabled": 1},
                     fields=["request_type_name"],
                 )
@@ -32,23 +32,23 @@ class TestOfficeBootstrap(FrappeTestCase):
 
     def test_bootstrap_is_idempotent(self):
         bootstrap_offices()
-        before = frappe.db.count("HD Office")
-        request_types_before = frappe.db.count("HD Office Request Type")
+        before = frappe.db.count("CB Office")
+        request_types_before = frappe.db.count("CB Office Request Type")
         bootstrap_offices()
-        self.assertEqual(frappe.db.count("HD Office"), before)
-        self.assertEqual(frappe.db.count("HD Office Request Type"), request_types_before)
+        self.assertEqual(frappe.db.count("CB Office"), before)
+        self.assertEqual(frappe.db.count("CB Office Request Type"), request_types_before)
 
     def test_request_type_lookup_is_office_scoped(self):
         bootstrap_offices()
-        ict = frappe.db.get_value("HD Office", {"office_code": "ICT"}, "name")
+        ict = frappe.db.get_value("CB Office", {"office_code": "ICT"}, "name")
         rows = get_office_request_types(ict)
         self.assertEqual({row.request_type_name for row in rows}, {"Tech Support", "Inquiry"})
 
     def test_customer_ticket_rejects_request_type_from_another_office(self):
         bootstrap_offices()
-        ict = frappe.db.get_value("HD Office", {"office_code": "ICT"}, "name")
+        ict = frappe.db.get_value("CB Office", {"office_code": "ICT"}, "name")
         registrar_type = frappe.db.get_value(
-            "HD Office Request Type", "REG-INQUIRY", "name"
+            "CB Office Request Type", "REG-INQUIRY", "name"
         )
         ticket = frappe.get_doc(
             {
