@@ -3,6 +3,7 @@ from frappe.tests.utils import FrappeTestCase
 
 from helpdesk.setup.office_bootstrap import bootstrap_offices
 from helpdesk.setup.office_routing import (
+    get_enabled_offices,
     get_office_request_types,
     validate_ticket_office_routing,
 )
@@ -37,6 +38,19 @@ class TestOfficeBootstrap(FrappeTestCase):
         bootstrap_offices()
         self.assertEqual(frappe.db.count("CB Office"), before)
         self.assertEqual(frappe.db.count("CB Office Request Type"), request_types_before)
+
+    def test_enabled_offices_lookup_returns_configured_offices(self):
+        bootstrap_offices()
+        rows = get_enabled_offices()
+        self.assertEqual(
+            {row.office_name for row in rows},
+            {
+                "ICT Office",
+                "Registrar's Office",
+                "Admissions Office",
+                "Cashier's Office",
+            },
+        )
 
     def test_request_type_lookup_is_office_scoped(self):
         bootstrap_offices()
