@@ -63,6 +63,30 @@ class TestOfficeBootstrap(FrappeTestCase):
         refreshed = frappe.get_doc("HD Team", "ICT Support Team")
         self.assertEqual(len(refreshed.offices), 2)
 
+
+    def test_request_type_default_team_routes_new_ticket(self):
+        from helpdesk.setup.office_routing import set_ticket_defaults
+
+        bootstrap_offices()
+        bootstrap_office_teams()
+        ict = frappe.db.get_value("CB Office", {"office_code": "ICT"}, "name")
+        ticket = frappe.get_doc({
+            "doctype": "HD Ticket",
+            "office": ict,
+            "request_type": "TECH-SUPPORT",
+            "via_customer_portal": 1,
+        })
+        set_ticket_defaults(ticket)
+        self.assertEqual(ticket.agent_group, "ICT Support Team")
+
+    def test_request_type_rejects_default_team_from_another_office(self):
+        bootstrap_offices()
+        bootstrap_office_teams()
+        request_type = frappe.get_doc("CB Office Request Type", "TECH-SUPPORT")
+        request_type.default_team = "Registrar Support Team"
+        with self.assertRaises(frappe.ValidationError):
+            request_type.save(ignore_permissions=True)
+
     def test_bootstrap_is_idempotent(self):
         bootstrap_offices()
         before = frappe.db.count("CB Office")
