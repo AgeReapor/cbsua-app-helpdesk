@@ -90,9 +90,11 @@ def validate_ticket_office_routing(doc, method=None):
 @frappe.whitelist()
 def get_office_request_types(office: str) -> list[dict]:
     """Return enabled request types for customer/agent dependent selects."""
+    if not frappe.has_permission("CB Office", "read", office):
+        frappe.throw(_("You do not have access to this office."), frappe.PermissionError)
     if not frappe.db.get_value("CB Office", office, "enabled"):
         return []
-    return frappe.get_all(
+    return frappe.get_list(
         "CB Office Request Type",
         filters={"office": office, "enabled": 1},
         fields=["name", "request_type_name"],
@@ -103,7 +105,7 @@ def get_office_request_types(office: str) -> list[dict]:
 @frappe.whitelist(methods=["GET"])
 def get_enabled_offices() -> list[dict]:
     """Enabled offices for the customer and agent ticket forms."""
-    return frappe.get_all(
+    return frappe.get_list(
         "CB Office",
         filters={"enabled": 1},
         fields=["name", "office_name", "is_default"],
