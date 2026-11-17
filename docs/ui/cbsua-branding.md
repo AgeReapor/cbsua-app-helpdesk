@@ -14,7 +14,7 @@ agent desk and the Studio customer portal.
 
 This is an identity integration plus a restrained first styling pass. The
 institutional accent treatment is documented in
-[ CBSUA UI styling ](cbsua-ui-styling.md). A complete visual redesign remains
+[CBSUA UI styling](cbsua-ui-styling.md). A complete visual redesign remains
 a separate follow-up.
 
 ## Source assets
