@@ -164,6 +164,7 @@ doc_events = {
     },
     # Office routing is validated server-side for desk, portal, API, and import writes.
     "HD Ticket": {
+        "before_validate": "helpdesk.setup.office_routing.set_ticket_defaults",
         "validate": "helpdesk.setup.office_routing.validate_ticket_office_routing",
     },
 }
