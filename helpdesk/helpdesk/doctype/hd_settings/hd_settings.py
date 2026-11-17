@@ -24,6 +24,7 @@ from helpdesk.helpdesk.doctype.hd_ticket.hd_ticket import (
 
 class HDSettings(Document):
     def validate(self):
+        self.validate_default_cb_office()
         self.validate_auto_close_days()
         self.validate_email_contents()
         self.validate_send_feedback_when_ticket_closed()
@@ -32,6 +33,16 @@ class HDSettings(Document):
         self.validate_guest_only_settings()
         # every visitor loads it, so a linked image could track them
         validate_uploaded_image(self.banner_image)
+
+    def validate_default_cb_office(self):
+        if not self.default_cb_office:
+            return
+        if not frappe.db.get_value(
+            "CB Office", {"name": self.default_cb_office, "enabled": 1}, "name"
+        ):
+            frappe.throw(_("The default office must be an enabled CBSUA office."))
+        frappe.db.set_value("CB Office", {"is_default": 1}, "is_default", 0)
+        frappe.db.set_value("CB Office", self.default_cb_office, "is_default", 1)
 
     def turn_off_guest_home_when_private(self):
         """A private knowledge base turns away guests, so it can't be their home."""
