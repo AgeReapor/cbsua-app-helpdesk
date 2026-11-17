@@ -9,10 +9,10 @@
 [![codecov](https://codecov.io/github/frappe/helpdesk/branch/develop/graph/badge.svg?token=8ZXHCY4G9U)](https://codecov.io/github/frappe/helpdesk)
 
 <a href="https://trendshift.io/repositories/12764" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12764" alt="teableio%2Fteable | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-</div>
 
 </div>
 
+</div>
 
 <div align="center">
 	<img src="./.github/Hero2.png" alt="Hero Image" width="100%" />
@@ -25,11 +25,11 @@
 </div>
 
 ## Frappe Helpdesk
-Frappe Helpdesk is an 100% open-source Ticket Management tool which helps you  streamline your company's support, offers an easy setup, clean user interface, and automation tools to resolve customer queries efficiently.
 
-
+Frappe Helpdesk is an 100% open-source Ticket Management tool which helps you streamline your company's support, offers an easy setup, clean user interface, and automation tools to resolve customer queries efficiently.
 
 ### Motivation
+
 Managing issues from our customers was a big challenge for us. We were using the ERPNext support module which was not very good in UI and the UX was also not good. We wanted to have a tool that can be easily integrated with our existing system and can be customized as per our needs. So we decided to build Frappe Helpdesk.
 
 ### Key Features
@@ -72,7 +72,6 @@ Managing issues from our customers was a big challenge for us. We were using the
 
 ![Customer Ticket View](.github/CustomerTicketView.png)
 
-
 <div align="center">
 	<sub>
 		Upload articles and let your customer solve their queries through the Knowledge Base.
@@ -87,21 +86,16 @@ Managing issues from our customers was a big challenge for us. We were using the
 	</sub>
 </div>
 
-
 ![Article Search](.github/Search2.png)
-
-
 
 </details>
 <br>
-
 
 ### Under the Hood
 
 - [**Frappe Framework**](https://github.com/frappe/frappe): A full-stack web application framework written in Python and Javascript.
 
-- [**Frappe UI**](https://github.com/frappe/frappe-ui): A Vue-based UI library, to provide a modern user interface. 
-
+- [**Frappe UI**](https://github.com/frappe/frappe-ui): A Vue-based UI library, to provide a modern user interface.
 
 ## Production Setup
 
@@ -143,6 +137,7 @@ python3 ./easy-install.py deploy \
 ```
 
 Replace the following parameters with your values:
+
 - `your_email.example.com`: Your email address
 - `subdomain.domain.tld`: Your domain name where Helpdesk will be hosted
 
@@ -170,6 +165,7 @@ You need Docker, docker-compose and git setup on your machine. Refer [Docker doc
     docker compose up -d
 
 **Step 3**: The site [http://helpdesk.localhost:8000/helpdesk](http://helpdesk.localhost:8000/helpdesk) should now be available. The default credentials are:
+
 - Username: Administrator
 - Password: admin
 
@@ -181,32 +177,33 @@ To setup the repository locally follow the steps mentioned below:
 1. Start the server by running `bench start`
 1. In a separate terminal window, create a new site by running `bench new-site helpdesk.test`
 1. Map your site to localhost with the command `bench --site helpdesk.test add-to-hosts`
-1. Get the Telephony app. Run `bench get-app https://github.com/frappe/telephony`
-1. Get the Helpdesk app. Run `bench get-app https://github.com/frappe/helpdesk`
+1. Get the Telephony app. Run `bench get-app https://github.com/frappe/telephony` -> `pilot get-app https://github.com/AgeReapor/cbsua-app-telephony`
+1. Get the Helpdesk app. Run `bench get-app https://github.com/frappe/helpdesk` -> `pilot get-app https://github.com/AgeReapor/cbsua-app-helpdesk`
 1. Run `bench --site helpdesk.test install-app helpdesk`.
 1. Run `bench build --app helpdesk`. This also builds the customer portal.
 1. Now open the URL `http://helpdesk.test:8000/helpdesk` in your browser, you should see the app running. Customers use the portal at `http://helpdesk.test:8000/help`.
 
 **Note:** The `develop` branch needs frappe `develop`, which ships Studio, the app that runs the customer portal. Article search needs Redis with the RediSearch module, for example [Redis Stack](https://redis.io/docs/latest/operate/oss_and_stack/install/install-stack/), in your bench's `redis_cache`.
 
-
 **For Frontend Development**
 
 The agent portal:
+
 1. Open a new terminal session and cd into `frappe-bench/apps/helpdesk/desk`, and run the following commands:
-    ```
-    yarn install
-    yarn dev or yarn dev --host helpdesk.test
-    ```
+   ```
+   yarn install
+   yarn dev or yarn dev --host helpdesk.test
+   ```
 1. Now, you can access the site on vite dev server at `http://helpdesk.test:8080`
 
 The customer portal, a Studio app:
+
 1. Enable developer mode, allow the dev server's requests, and install dev dependencies:
-    ```
-    bench set-config -g developer_mode 1
-    bench --site helpdesk.test set-config ignore_csrf 1
-    bench setup requirements --dev
-    ```
+   ```
+   bench set-config -g developer_mode 1
+   bench --site helpdesk.test set-config ignore_csrf 1
+   bench setup requirements --dev
+   ```
 1. Run `yarn install` in `frappe-bench/apps/helpdesk`. This links `@helpdesk/shared`, the code that the desk and the portal share.
 1. Start Studio's dev server in `frappe-bench/apps/frappe/studio/frontend` with `yarn install` and `yarn dev --host`. In developer mode, `bench watch` starts it for you.
 1. In another terminal, run `bench --site helpdesk.test watch-studio` and keep it running. It imports the page JSON that you change.
@@ -215,17 +212,15 @@ The customer portal, a Studio app:
 
 **Note:** Helpdesk’s frontend code is in `frappe-bench/apps/helpdesk/desk`, the portal's in `frappe-bench/apps/helpdesk/studio`, and the code they share in `frappe-bench/apps/helpdesk/shared`. See [`studio/README.md`](studio/README.md) for how the portal is laid out.
 
-
-## Compatibility matrix 
+## Compatibility matrix
 
 | Helpdesk Branch | Compatible Frappe Framework Version |
-|-----------------|-------------------------------------|
+| --------------- | ----------------------------------- |
 | version-15      | version-15                          |
 | version-16      | version-16                          |
 | develop         | develop branch                      |
 
 `main` stopped at 1.32 and gets no more updates. Move to `version-15` or `version-16`, the one that matches your Frappe version.
-
 
 ## Learn and connect
 
@@ -238,7 +233,7 @@ The customer portal, a Studio app:
 1. [Issue Guidelines](https://github.com/frappe/erpnext/wiki/Issue-Guidelines)
 1. [Report Security Vulnerabilities](https://frappe.io/security)
 1. [Pull Request Requirements](https://github.com/frappe/erpnext/wiki/Contribution-Guidelines)
-2. [Translations](https://crowdin.com/project/frappe)
+1. [Translations](https://crowdin.com/project/frappe)
 
 <br>
 <br>
