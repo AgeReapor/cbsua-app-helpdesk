@@ -41,7 +41,13 @@ def bootstrap_offices():
     if not default_office or not frappe.db.get_value(
         "CB Office", {"name": default_office, "enabled": 1}, "name"
     ):
-        default_office = frappe.db.get_value("CB Office", {"office_code": "ICT"}, "name")
+        default_office = frappe.db.get_value(
+            "CB Office", {"is_default": 1, "enabled": 1}, "name"
+        )
+        if not default_office:
+            default_office = frappe.db.get_value(
+                "CB Office", {"office_code": "ICT", "enabled": 1}, "name"
+            )
         if default_office:
             frappe.db.set_single_value("HD Settings", "default_cb_office", default_office)
     if default_office:
