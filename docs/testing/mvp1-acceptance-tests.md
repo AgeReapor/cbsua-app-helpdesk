@@ -12,3 +12,8 @@
 - [ ] A non-member cannot resolve a ticket assigned to an office team.
 - [ ] Existing tickets without office metadata are not silently reassigned.
 - [ ] Customer portal request type options are filtered by selected office.
+
+- [ ] Helpdesk workspace shows a CBSUA Office Routing card with Offices and Office Request Types links.
+- [ ] HD Settings shows a CBSUA Routing tab with the office-routing toggle and default office.
+- [ ] CB Office and CB Office Request Type Link fields are selectable by Administrator and System Manager.
+- [ ] Existing HD Team records expose Assigned Offices and save CB Team Office rows.
