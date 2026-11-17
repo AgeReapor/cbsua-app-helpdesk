@@ -69,3 +69,14 @@ def get_office_request_types(office):
         fields=["name", "request_type_name"],
         order_by="display_order asc, request_type_name asc",
     )
+
+
+@frappe.whitelist(methods=["GET"])
+def get_enabled_offices():
+    """Enabled offices for the customer and agent ticket forms."""
+    return frappe.get_all(
+        "HD Office",
+        filters={"enabled": 1},
+        fields=["name", "office_name", "is_default"],
+        order_by="is_default desc, office_name asc",
+    )
