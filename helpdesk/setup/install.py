@@ -289,12 +289,41 @@ def get_custom_fields():
     """Helpdesk specific custom fields added to framework DocTypes."""
     return {
         "Tag": get_tag_custom_fields(),
+        "HD Settings": [
+            {
+                "fieldname": "cbsua_routing_tab",
+                "label": "CBSUA Routing",
+                "fieldtype": "Tab Break",
+                "insert_after": "ticket_tab",
+            },
+            {
+                "fieldname": "cbsua_routing_section",
+                "label": "Office Routing",
+                "fieldtype": "Section Break",
+                "insert_after": "cbsua_routing_tab",
+            },
+            {
+                "fieldname": "office_routing_enabled",
+                "label": "Enable Office Routing",
+                "fieldtype": "Check",
+                "default": "1",
+                "insert_after": "cbsua_routing_section",
+                "description": "Require tickets to have a destination office and an office-specific request type.",
+            },
+            {
+                "fieldname": "default_cb_office",
+                "label": "Default Office",
+                "fieldtype": "Link",
+                "options": "CB Office",
+                "insert_after": "office_routing_enabled",
+            },
+        ],
         "HD Ticket": [
             {
                 "fieldname": "office",
                 "label": "Office",
                 "fieldtype": "Link",
-                "options": "HD Office",
+                "options": "CB Office",
                 "insert_after": "agent_group",
                 "in_list_view": 1,
                 "in_standard_filter": 1,
@@ -305,7 +334,7 @@ def get_custom_fields():
                 "fieldname": "request_type",
                 "label": "Type of Request",
                 "fieldtype": "Link",
-                "options": "HD Office Request Type",
+                "options": "CB Office Request Type",
                 "insert_after": "office",
                 "in_list_view": 1,
                 "description": "Request type configured for the selected office.",
@@ -316,7 +345,7 @@ def get_custom_fields():
                 "fieldname": "offices",
                 "label": "Assigned Offices",
                 "fieldtype": "Table MultiSelect",
-                "options": "HD Team Office",
+                "options": "CB Team Office",
                 "insert_after": "users",
                 "description": "Offices this team is authorized to handle. A team may serve multiple offices.",
             },
