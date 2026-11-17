@@ -71,6 +71,45 @@ def bootstrap_offices():
         }).insert(ignore_permissions=True)
 
 
+
+# Keep these as native Helpdesk teams so membership, assignment rules, and ticket
+# assignment continue to use the existing HD Team workflows.
+DEFAULT_OFFICE_TEAMS = [
+    ("ICT Support Team", "ICT"),
+    ("Registrar Support Team", "REG"),
+    ("Admissions Support Team", "ADM"),
+    ("Cashier Support Team", "CSH"),
+]
+
+
+def bootstrap_office_teams():
+    """Ensure each CBSUA office has a dedicated, correctly mapped HD Team.
+
+    Safe on fresh installs and upgrades. Existing members, disabled state,
+    assignment rules, and additional office mappings are preserved.
+    """
+    for team_name, office_code in DEFAULT_OFFICE_TEAMS:
+        office = frappe.db.get_value(
+            "CB Office", {"office_code": office_code, "enabled": 1}, "name"
+        )
+        if not office:
+            continue
+
+        if not frappe.db.exists("HD Team", team_name):
+            team = frappe.new_doc("HD Team")
+            team.team_name = team_name
+            # An empty team is valid during initial setup; its generated
+            # support-rotation Assignment Rule remains disabled until staffed.
+            team.insert(ignore_permissions=True, ignore_mandatory=True)
+        else:
+            team = frappe.get_doc("HD Team", team_name)
+
+        assigned_offices = {row.office for row in team.get("offices", []) if row.office}
+        if office not in assigned_offices:
+            team.append("offices", {"office": office})
+            team.save(ignore_permissions=True)
+
+
 def execute():
     """Patch entry point used by patches.txt and after_migrate.
 
@@ -84,6 +123,7 @@ def execute():
     create_custom_fields(get_custom_fields(), update=True)
     migrate_legacy_office_records()
     bootstrap_offices()
+    bootstrap_office_teams()
     migrate_legacy_team_offices()
     remove_legacy_office_doctypes()
     add_cbsua_link_permissions()

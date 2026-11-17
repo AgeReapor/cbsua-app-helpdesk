@@ -1,7 +1,7 @@
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from helpdesk.setup.office_bootstrap import bootstrap_offices
+from helpdesk.setup.office_bootstrap import bootstrap_office_teams, bootstrap_offices
 from helpdesk.setup.office_routing import (
     get_enabled_offices,
     get_office_request_types,
@@ -30,6 +30,38 @@ class TestOfficeBootstrap(FrappeTestCase):
                 )
             }
             self.assertEqual(actual, labels)
+
+
+    def test_bootstrap_creates_office_teams_and_assigns_the_matching_office(self):
+        bootstrap_offices()
+        bootstrap_office_teams()
+        expected = {
+            "ICT Support Team": "ICT",
+            "Registrar Support Team": "REG",
+            "Admissions Support Team": "ADM",
+            "Cashier Support Team": "CSH",
+        }
+        for team_name, office_code in expected.items():
+            team = frappe.get_doc("HD Team", team_name)
+            office = frappe.db.get_value(
+                "CB Office", {"office_code": office_code}, "name"
+            )
+            self.assertIn(office, {row.office for row in team.offices})
+
+    def test_office_team_bootstrap_is_idempotent_and_preserves_extra_mappings(self):
+        bootstrap_offices()
+        bootstrap_office_teams()
+        team = frappe.get_doc("HD Team", "ICT Support Team")
+        registrar = frappe.db.get_value(
+            "CB Office", {"office_code": "REG"}, "name"
+        )
+        team.append("offices", {"office": registrar})
+        team.save(ignore_permissions=True)
+        before = frappe.db.count("HD Team")
+        bootstrap_office_teams()
+        self.assertEqual(frappe.db.count("HD Team"), before)
+        refreshed = frappe.get_doc("HD Team", "ICT Support Team")
+        self.assertEqual(len(refreshed.offices), 2)
 
     def test_bootstrap_is_idempotent(self):
         bootstrap_offices()
