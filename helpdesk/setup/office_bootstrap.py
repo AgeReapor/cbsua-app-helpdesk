@@ -26,23 +26,29 @@ DEFAULT_REQUEST_TYPES = [
 def bootstrap_offices():
     """Create baseline offices and request types without overwriting edits."""
     for office in DEFAULT_OFFICES:
-        if not frappe.db.exists("HD Office", {"office_code": office["office_code"]}):
-            frappe.get_doc({"doctype": "HD Office", "enabled": 1, **office}).insert(
+        if not frappe.db.exists("CB Office", {"office_code": office["office_code"]}):
+            frappe.get_doc({"doctype": "CB Office", "enabled": 1, **office}).insert(
                 ignore_permissions=True
             )
 
-    # Keep ICT as the default only when no default office has been configured.
-    if not frappe.db.exists("HD Office", {"is_default": 1, "enabled": 1}):
-        ict = frappe.db.get_value("HD Office", {"office_code": "ICT"}, "name")
-        if ict:
-            frappe.db.set_value("HD Office", ict, "is_default", 1)
+    # Keep the HD Settings default authoritative, falling back to ICT on first boot.
+    default_office = frappe.db.get_single_value("HD Settings", "default_cb_office")
+    if not default_office or not frappe.db.get_value(
+        "CB Office", {"name": default_office, "enabled": 1}, "name"
+    ):
+        default_office = frappe.db.get_value("CB Office", {"office_code": "ICT"}, "name")
+        if default_office:
+            frappe.db.set_single_value("HD Settings", "default_cb_office", default_office)
+    if default_office:
+        frappe.db.set_value("CB Office", {"is_default": 1}, "is_default", 0)
+        frappe.db.set_value("CB Office", default_office, "is_default", 1)
 
     for office_code, label, code, order in DEFAULT_REQUEST_TYPES:
-        office = frappe.db.get_value("HD Office", {"office_code": office_code}, "name")
-        if not office or frappe.db.exists("HD Office Request Type", code):
+        office = frappe.db.get_value("CB Office", {"office_code": office_code}, "name")
+        if not office or frappe.db.exists("CB Office Request Type", code):
             continue
         frappe.get_doc({
-            "doctype": "HD Office Request Type",
+            "doctype": "CB Office Request Type",
             "request_type_name": label,
             "request_type_code": code,
             "office": office,
@@ -63,3 +69,15 @@ def execute():
 
     create_custom_fields(get_custom_fields(), update=True)
     bootstrap_offices()
+    add_cbsua_link_permissions()
+
+
+def add_cbsua_link_permissions():
+    """Grant Link-field select access; read alone does not authorize Link queries."""
+    from frappe.permissions import add_permission, update_permission_property
+
+    for doctype in ("CB Office", "CB Office Request Type"):
+        for role in ("System Manager", "Administrator", "Agent Manager", "Agent", "HD Customer", "HD Customer Manager"):
+            add_permission(doctype, role)
+            update_permission_property(doctype, role, 0, "read", 1)
+            update_permission_property(doctype, role, 0, "select", 1)
