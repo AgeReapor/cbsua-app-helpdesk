@@ -12,9 +12,28 @@ def set_ticket_defaults(doc, method=None):
     """Set the configured default office for newly created legacy/API tickets."""
     if not doc.is_new() or doc.office:
         return
-    default_office = frappe.db.get_value("HD Office", {"is_default": 1, "enabled": 1}, "name")
+    default_office = frappe.db.get_value(
+        "HD Office", {"is_default": 1, "enabled": 1}, "name"
+    )
     if default_office:
         doc.office = default_office
+
+    # Email integrations and internal agent-created tickets predate the portal's
+    # explicit request-type selector. Give those flows the office's Inquiry type
+    # (or first enabled type) while requiring portal submissions to choose one.
+    if doc.office and not doc.request_type and not doc.via_customer_portal:
+        request_type = frappe.db.get_value(
+            "HD Office Request Type",
+            {"office": doc.office, "request_type_name": "Inquiry", "enabled": 1},
+            "name",
+        ) or frappe.db.get_value(
+            "HD Office Request Type",
+            {"office": doc.office, "enabled": 1},
+            "name",
+            order_by="display_order asc",
+        )
+        if request_type:
+            doc.request_type = request_type
 
 
 def validate_ticket_office_routing(doc, method=None):
@@ -39,11 +58,17 @@ def validate_ticket_office_routing(doc, method=None):
     elif doc.is_new():
         frappe.throw(_("Select a type of request for the selected office."))
 
-    if doc.agent_group:
+    if doc.agent_group and (
+        doc.is_new()
+        or doc.has_value_changed("agent_group")
+        or doc.has_value_changed("office")
+    ):
         team = frappe.get_doc("HD Team", doc.agent_group)
         allowed_offices = {row.office for row in team.get("offices", []) if row.office}
         if doc.office not in allowed_offices:
-            frappe.throw(_("Team {0} is not assigned to {1}.").format(doc.agent_group, doc.office))
+            frappe.throw(
+                _("Team {0} is not assigned to {1}.").format(doc.agent_group, doc.office)
+            )
 
     # Resolution must be performed by an agent who belongs to the ticket's
     # assigned team. Administrators retain operational override capability.
