@@ -27,6 +27,8 @@ get_site_info = "helpdesk.activation.get_site_info"
 after_install = "helpdesk.setup.install.after_install"
 before_uninstall = "helpdesk.setup.install.before_uninstall"
 after_migrate = [
+    # Keep CBSUA office configuration synchronized on every migration; bootstrap is idempotent.
+    "helpdesk.setup.office_bootstrap.execute",
     "helpdesk.search.build_index_in_background",
     "helpdesk.search.download_corpus",
 ]
@@ -159,6 +161,10 @@ doc_events = {
     },
     "ToDo": {
         "on_update": "helpdesk.helpdesk.doctype.hd_ticket.hd_ticket.publish_assignment_update",
+    },
+    # Office routing is validated server-side for desk, portal, API, and import writes.
+    "HD Ticket": {
+        "validate": "helpdesk.setup.office_routing.validate_ticket_office_routing",
     },
 }
 
