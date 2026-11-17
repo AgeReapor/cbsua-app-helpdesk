@@ -60,3 +60,19 @@ class TestOfficeBootstrap(FrappeTestCase):
         )
         with self.assertRaises(frappe.ValidationError):
             validate_ticket_office_routing(ticket)
+
+    def test_office_link_permissions_include_select_for_administrators(self):
+        from helpdesk.setup.office_bootstrap import add_cbsua_link_permissions
+
+        add_cbsua_link_permissions()
+        for doctype in ("CB Office", "CB Office Request Type"):
+            for role in ("System Manager", "Administrator"):
+                permission = frappe.db.get_value(
+                    "DocPerm",
+                    {"parent": doctype, "role": role, "permlevel": 0},
+                    ["read", "select"],
+                    as_dict=True,
+                )
+                self.assertTrue(permission)
+                self.assertTrue(permission.read)
+                self.assertTrue(permission.select)
