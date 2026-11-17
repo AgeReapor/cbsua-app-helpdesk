@@ -77,6 +77,8 @@ def execute():
 
     create_custom_fields(get_custom_fields(), update=True)
     bootstrap_offices()
+    migrate_legacy_team_offices()
+    remove_legacy_office_doctypes()
     add_cbsua_link_permissions()
 
 
@@ -89,3 +91,28 @@ def add_cbsua_link_permissions():
             add_permission(doctype, role)
             update_permission_property(doctype, role, 0, "read", 1)
             update_permission_property(doctype, role, 0, "select", 1)
+
+
+def migrate_legacy_team_offices():
+    """Copy existing HD Team Office child rows to the CBSUA child table."""
+    if not frappe.db.exists("DocType", "HD Team Office"):
+        return
+    for row in frappe.get_all(
+        "HD Team Office",
+        fields=["parent", "parentfield", "parenttype", "idx", "office"],
+        order_by="parent, idx",
+    ):
+        if not frappe.db.exists(
+            "CB Team Office",
+            {"parent": row.parent, "parentfield": row.parentfield, "office": row.office},
+        ):
+            frappe.get_doc({"doctype": "CB Team Office", **row}).insert(
+                ignore_permissions=True
+            )
+
+
+def remove_legacy_office_doctypes():
+    """Remove the superseded HD-prefixed CBSUA DocTypes after data migration."""
+    for doctype in ("HD Team Office", "HD Office Request Type", "HD Office"):
+        if frappe.db.exists("DocType", doctype):
+            frappe.delete_doc("DocType", doctype, force=True, ignore_missing=True)
