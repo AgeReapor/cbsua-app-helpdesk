@@ -1,44 +1,46 @@
-# Office-aware Helpdesk Architecture
+# CBSUA Office-Aware Helpdesk Architecture
 
-## Scope
+## Module and DocTypes
 
-CBSUA Helpdesk adds an office routing dimension to Frappe Helpdesk without replacing its existing ticket, team, assignment-rule, SLA, or customer models.
+CBSUA-owned records live in the **CBSUA** module and use the `CB` prefix:
 
-## Entities
+- `CB Office` — the service destination selected by a requester.
+- `CB Office Request Type` — a request category owned by one office.
+- `CB Team Office` — child table mapping an existing `HD Team` to one or more offices.
 
-- **HD Office**: independently enabled service office, with a unique office code and one configurable default office.
-- **HD Office Request Type**: request classification owned by exactly one office. A request type code is globally unique so labels such as `Inquiry` can exist independently for each office.
-- **HD Team**: existing Frappe Helpdesk team, extended with an `offices` Table MultiSelect relationship.
-- **HD Ticket**: existing ticket, extended with `office` and `request_type` links.
+The Frappe Helpdesk-owned `HD Team` and `HD Ticket` remain their original DocTypes. Their CBSUA-specific fields are installed as app-managed Custom Fields and link to the CB DocTypes.
 
-A team can serve multiple offices. A ticket's selected team must explicitly list the ticket's office. Team membership continues to use the existing HD Team Member child table.
+## Baseline configuration
 
-## Baseline records
-
-| Office | Initial request types |
+| Office | Request types |
 |---|---|
 | ICT Office | Tech Support, Inquiry |
 | Registrar's Office | Inquiry |
 | Admissions Office | Inquiry |
 | Cashier's Office | Inquiry |
 
-ICT is the default office on a fresh install. No team membership or office assignment is guessed by the installer; administrators explicitly associate existing teams with offices.
+ICT is selected as the initial default in `HD Settings` under the **CBSUA Routing** tab. Administrators can change the default office there. Office and request-type records are managed from the **CBSUA Office Routing** card in the Helpdesk workspace.
 
-## Ticket lifecycle
+## Teams and routing
 
-The office and request type are persisted on HD Ticket. The shared `NewTicketForm.vue` used by the customer portal and desk now selects Office first, then calls `helpdesk.setup.office_routing.get_office_request_types` to populate the request-type select. The enabled office list comes from `get_enabled_offices`. Both values are included in the existing ticket creation payload. Server validation is authoritative and rejects mismatched or disabled request types.
+Open Helpdesk → Agent Configuration → Team to edit an existing `HD Team`. Use **Assigned Offices** to map the team to every office it serves. A team can serve multiple offices. Do not infer office assignment from the team's name or its members.
 
-Team selection is constrained by the office in the UI, but the same relationship is checked server-side on every ticket save. Resolution is permitted only when a team is assigned and the acting user belongs to that team; Administrator and System Manager retain administrative override.
+A ticket stores `office` and `request_type`. The request type must be enabled and belong to the selected office. An assigned team must explicitly serve that office. A user resolving a ticket must be a member of the assigned team; System Manager and Administrator retain administrative override.
 
-## Legacy tickets
+## Link-field permissions
 
-Existing tickets without office metadata are not bulk-assigned to ICT because that would fabricate routing history. They remain accessible under existing Helpdesk permissions. New tickets must specify an enabled office and request type.
+Frappe Link controls check `select` permission when searching linked records. Read permission alone is insufficient. Installation and migration explicitly grant read/select to System Manager, Administrator, Agent Manager, Agent, HD Customer, and HD Customer Manager for `CB Office` and `CB Office Request Type`. Customer-facing listing APIs return only enabled offices and office-scoped request types.
 
-## Operational configuration
+## Boot lifecycle
 
-1. Create or enable an office.
-2. Add office-specific request types.
-3. Edit each HD Team and add its authorized offices.
-4. Configure customer portal controls to use the office and request-type endpoint.
+- Fresh install creates app-managed ticket/team/settings fields, seeds baseline offices and request types, and grants Link permissions.
+- Migration re-applies the app-managed fields and idempotent bootstrap.
+- The bootstrap does not overwrite office names, codes, enabled states, or request-type configuration once records exist.
+- No team is automatically assigned to an office. Administrators make that operational decision.
 
-The installer seeds missing baseline rows only. Subsequent migrations preserve administrator edits and do not auto-assign teams.
+## Documentation index
+
+- [Office administration](../configuration/offices.md)
+- [Request type administration](../configuration/request-types.md)
+- [Team-office assignment](../configuration/teams.md)
+- [Boot refactor and acceptance tests](../development/boot-refactor.md)
