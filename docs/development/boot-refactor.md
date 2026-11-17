@@ -18,7 +18,7 @@ Frappe Link search requires `select` permission, not merely `read`. The bootstra
 
 - [ ] Offices and request types are accessible from the Helpdesk workspace.
 - [ ] Teams are accessible from Helpdesk → Agent Configuration → Team and show Assigned Offices.
-- [ ] HD Settings exposes CBSUA Routing, enable/disable, and default office.
+- [ ] HD Settings exposes CBSUA Routing, and default office.
 - [ ] Administrator and System Manager can search and select offices in Link fields.
 - [ ] Customers can see only enabled offices and request types for the chosen office.
 - [ ] Teams cannot be assigned tickets outside their mapped offices.
