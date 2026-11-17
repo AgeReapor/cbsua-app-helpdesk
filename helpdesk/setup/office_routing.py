@@ -12,9 +12,13 @@ def set_ticket_defaults(doc, method=None):
     """Set the configured default office for newly created legacy/API tickets."""
     if not doc.is_new() or doc.office:
         return
-    default_office = frappe.db.get_value(
-        "HD Office", {"is_default": 1, "enabled": 1}, "name"
-    )
+    default_office = frappe.db.get_single_value("HD Settings", "default_cb_office")
+    if not default_office or not frappe.db.get_value(
+        "CB Office", {"name": default_office, "enabled": 1}, "name"
+    ):
+        default_office = frappe.db.get_value(
+            "CB Office", {"is_default": 1, "enabled": 1}, "name"
+        )
     if default_office:
         doc.office = default_office
 
@@ -23,11 +27,11 @@ def set_ticket_defaults(doc, method=None):
     # (or first enabled type) while requiring portal submissions to choose one.
     if doc.office and not doc.request_type and not doc.via_customer_portal:
         request_type = frappe.db.get_value(
-            "HD Office Request Type",
+            "CB Office Request Type",
             {"office": doc.office, "request_type_name": "Inquiry", "enabled": 1},
             "name",
         ) or frappe.db.get_value(
-            "HD Office Request Type",
+            "CB Office Request Type",
             {"office": doc.office, "enabled": 1},
             "name",
             order_by="display_order asc",
@@ -44,13 +48,13 @@ def validate_ticket_office_routing(doc, method=None):
             frappe.throw(_("Select an office before creating this ticket."))
         return
 
-    office = frappe.db.get_value("HD Office", doc.office, ["enabled"], as_dict=True)
+    office = frappe.db.get_value("CB Office", doc.office, ["enabled"], as_dict=True)
     if not office or not office.enabled:
         frappe.throw(_("The selected office is unavailable."))
 
     if doc.request_type:
         valid_type = frappe.db.exists(
-            "HD Office Request Type",
+            "CB Office Request Type",
             {"name": doc.request_type, "office": doc.office, "enabled": 1},
         )
         if not valid_type:
@@ -86,10 +90,10 @@ def validate_ticket_office_routing(doc, method=None):
 @frappe.whitelist()
 def get_office_request_types(office):
     """Return enabled request types for customer/agent dependent selects."""
-    if not frappe.db.get_value("HD Office", office, "enabled"):
+    if not frappe.db.get_value("CB Office", office, "enabled"):
         return []
     return frappe.get_all(
-        "HD Office Request Type",
+        "CB Office Request Type",
         filters={"office": office, "enabled": 1},
         fields=["name", "request_type_name"],
         order_by="display_order asc, request_type_name asc",
@@ -100,7 +104,7 @@ def get_office_request_types(office):
 def get_enabled_offices():
     """Enabled offices for the customer and agent ticket forms."""
     return frappe.get_all(
-        "HD Office",
+        "CB Office",
         filters={"enabled": 1},
         fields=["name", "office_name", "is_default"],
         order_by="is_default desc, office_name asc",
