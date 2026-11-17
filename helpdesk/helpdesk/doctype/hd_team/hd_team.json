@@ -32,11 +32,11 @@
    "read_only": 1
   },
   {
-    "fieldname": "users",
-    "fieldtype": "Table MultiSelect",
-    "label": "Users",
-    "options": "HD Team Member",
-    "reqd": 1
+   "fieldname": "users",
+   "fieldtype": "Table MultiSelect",
+   "label": "Users",
+   "options": "HD Team Member",
+   "reqd": 1
   },
   {
    "default": "0",

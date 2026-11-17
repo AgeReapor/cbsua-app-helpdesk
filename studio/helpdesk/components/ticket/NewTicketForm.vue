@@ -9,6 +9,48 @@
         class="prose prose-sm max-w-none text-ink-gray-7"
         v-html="about"
       />
+      <!-- Office is the routing destination; request types are fetched for this office only. -->
+      <div class="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+        <div class="flex flex-col gap-1.5">
+          <label for="cbsua-office" class="text-base font-medium text-ink-gray-7">{{ __("Office") }}</label>
+          <Combobox
+            id="cbsua-office"
+            v-model="office"
+            trigger="button"
+            size="sm"
+            :options="officeOptions"
+            :placeholder="__('Select an office')"
+            :required="true"
+            :disabled="loadingOffices || !officeOptions.length"
+            :loading="loadingOffices"
+            :error="officeLoadError || (!loadingOffices && !officeLoadError && !officeOptions.length ? __('No offices are configured. Please contact the helpdesk administrator.') : undefined)"
+          />
+          <button
+            v-if="officeLoadError"
+            type="button"
+            class="self-start text-sm text-ink-blue-6 hover:underline"
+            :disabled="loadingOffices"
+            @click="loadOffices"
+          >
+            {{ loadingOffices ? __("Loading…") : __("Retry loading offices") }}
+          </button>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label for="cbsua-request-type" class="text-base font-medium text-ink-gray-7">{{ __("Type of Request") }}</label>
+          <Combobox
+            id="cbsua-request-type"
+            v-model="requestType"
+            trigger="button"
+            size="sm"
+            :options="requestTypeOptions"
+            :placeholder="loadingRequestTypes ? __('Loading request types…') : __('Select a request type')"
+            :required="true"
+            :disabled="!office || loadingRequestTypes || !requestTypeOptions.length"
+            :loading="loadingRequestTypes"
+            :error="requestTypeError || (!loadingRequestTypes && office && !requestTypeError && !requestTypeOptions.length ? __('No request types are configured for this office.') : undefined)"
+          />
+        </div>
+      </div>
       <div class="flex w-full flex-col gap-2">
         <FormControl
           v-model="subject"
@@ -76,10 +118,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
   Button,
+  Combobox,
   FormControl,
   call,
   createResource,
@@ -187,8 +230,99 @@ const emit = defineEmits<{
 }>();
 
 const router = useRouter();
+const model = reactive<Record<string, any>>({});
 const subject = ref(props.initialSubject);
 const description = ref("");
+// These controls are outside the HD Ticket template so every office can own an
+// independent set of request types. Values are copied into the submitted model.
+const offices = ref<any[]>([]);
+const office = ref("");
+const loadingOffices = ref(false);
+const officeLoadError = ref("");
+const officeOptions = computed(() =>
+  offices.value.map((item) => ({ label: item.office_name, value: item.name }))
+);
+const requestTypes = ref<any[]>([]);
+const requestType = ref("");
+const loadingRequestTypes = ref(false);
+const requestTypeError = ref("");
+const requestTypeOptions = computed(() =>
+  requestTypes.value.map((item) => ({
+    label: item.request_type_name,
+    value: item.name,
+  }))
+);
+
+// Use frappe-ui's authenticated call() client so the current Frappe session
+// cookie is sent consistently with the other portal API calls. A resource
+// failure must be visible; an empty list must never look like a disabled field.
+async function loadOffices() {
+  loadingOffices.value = true;
+  officeLoadError.value = "";
+  try {
+    const rows = await call(
+      "helpdesk.setup.office_routing.get_enabled_offices",
+      {}
+    );
+    offices.value = Array.isArray(rows) ? rows : [];
+    if (!office.value && offices.value.length) {
+      office.value =
+        offices.value.find((row) => row.is_default)?.name ||
+        offices.value[0].name;
+    }
+    if (!offices.value.length) {
+      officeLoadError.value = __(
+        "No enabled offices were returned. Please contact the helpdesk administrator."
+      );
+    }
+  } catch (error) {
+    console.error("Could not load CBSUA offices", error);
+    officeLoadError.value = __(
+      "Could not load offices. Your session may have expired; please retry or sign in again."
+    );
+  } finally {
+    loadingOffices.value = false;
+  }
+}
+
+onMounted(() => {
+  void loadOffices();
+});
+
+watch(office, async (value) => {
+  requestType.value = "";
+  requestTypes.value = [];
+  requestTypeError.value = "";
+  model.office = value || "";
+  model.request_type = "";
+  if (!value) return;
+  loadingRequestTypes.value = true;
+  try {
+    const rows = await call(
+      "helpdesk.setup.office_routing.get_office_request_types",
+      { office: value }
+    );
+    if (office.value === value) requestTypes.value = rows || [];
+    if (office.value === value && !requestTypes.value.length) {
+      requestTypeError.value = __(
+        "No enabled request types are configured for this office."
+      );
+    }
+  } catch (error) {
+    console.error("Could not load CBSUA office request types", error);
+    if (office.value === value) {
+      requestTypeError.value = __(
+        "Could not load request types. Please retry by selecting the office again."
+      );
+    }
+  } finally {
+    if (office.value === value) loadingRequestTypes.value = false;
+  }
+}, { immediate: true });
+
+watch(requestType, (value) => {
+  model.request_type = value || "";
+});
 const attachments = ref([]);
 const isCreating = ref(false);
 const uploading = ref(0);
@@ -212,7 +346,6 @@ const skeletonFieldCount = useRememberedCount(
   0
 );
 
-const model = reactive<Record<string, any>>({});
 // Original fields, for `applyFilters` to restore.
 let oldFields: any[] = [];
 
@@ -309,6 +442,8 @@ function isRequired(row) {
 }
 
 const missingFields = computed(() => [
+  ...(office.value ? [] : [__("Office")]),
+  ...(requestType.value ? [] : [__("Type of Request")]),
   ...(subject.value.trim() ? [] : [__("Subject")]),
   ...(isContentEmpty(description.value) ? [__("Description")] : []),
   ...visibleFields.value
