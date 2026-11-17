@@ -26,7 +26,7 @@ ICT is the default office on a fresh install. No team membership or office assig
 
 ## Ticket lifecycle
 
-The office and request type are persisted on HD Ticket. The customer form should select Office first, then call `helpdesk.setup.office_routing.get_office_request_types` to populate the request-type select. Server validation is authoritative and rejects mismatched or disabled request types.
+The office and request type are persisted on HD Ticket. The shared `NewTicketForm.vue` used by the customer portal and desk now selects Office first, then calls `helpdesk.setup.office_routing.get_office_request_types` to populate the request-type select. The enabled office list comes from `get_enabled_offices`. Both values are included in the existing ticket creation payload. Server validation is authoritative and rejects mismatched or disabled request types.
 
 Team selection is constrained by the office in the UI, but the same relationship is checked server-side on every ticket save. Resolution is permitted only when a team is assigned and the acting user belongs to that team; Administrator and System Manager retain administrative override.
 
