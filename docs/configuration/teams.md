@@ -1,5 +1,7 @@
-# Office Team Assignment
+# Team and Office Administration
 
-The existing `HD Team` DocType gains an `Assigned Offices` table-multiselect. A team can serve one or more offices. Administrators must explicitly configure this mapping; installation does not infer it from team names or user membership.
+Open **Helpdesk → Agent Configuration → Team** to manage the existing `HD Team` records. The CBSUA app extends each team with an **Assigned Offices** table backed by the `CB Team Office` child DocType.
 
-A ticket may be assigned only to a team mapped to its Office. Agents resolving tickets must belong to the assigned team. System Manager and Administrator retain administrative override.
+Add every office the team is authorized to handle. A team can serve multiple offices. A ticket assigned to a team not mapped to its office is rejected by server validation. Agents resolving tickets must belong to the assigned team. System Manager and Administrator retain administrative override.
+
+No team-office relationship is guessed during installation. Configure it explicitly before routing live tickets to an office.
