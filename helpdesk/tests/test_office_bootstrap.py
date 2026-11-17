@@ -2,7 +2,10 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from helpdesk.setup.office_bootstrap import bootstrap_offices
-from helpdesk.setup.office_routing import get_office_request_types
+from helpdesk.setup.office_routing import (
+    get_office_request_types,
+    validate_ticket_office_routing,
+)
 
 
 class TestOfficeBootstrap(FrappeTestCase):
@@ -40,3 +43,20 @@ class TestOfficeBootstrap(FrappeTestCase):
         ict = frappe.db.get_value("HD Office", {"office_code": "ICT"}, "name")
         rows = get_office_request_types(ict)
         self.assertEqual({row.request_type_name for row in rows}, {"Tech Support", "Inquiry"})
+
+    def test_customer_ticket_rejects_request_type_from_another_office(self):
+        bootstrap_offices()
+        ict = frappe.db.get_value("HD Office", {"office_code": "ICT"}, "name")
+        registrar_type = frappe.db.get_value(
+            "HD Office Request Type", "REG-INQUIRY", "name"
+        )
+        ticket = frappe.get_doc(
+            {
+                "doctype": "HD Ticket",
+                "office": ict,
+                "request_type": registrar_type,
+                "via_customer_portal": 1,
+            }
+        )
+        with self.assertRaises(frappe.ValidationError):
+            validate_ticket_office_routing(ticket)
