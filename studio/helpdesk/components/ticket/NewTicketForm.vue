@@ -27,7 +27,8 @@
         />
       </div>
       <div class="flex w-full flex-col">
-        <span class="mb-1.5 block text-p-sm text-ink-gray-5">
+        <!-- Keep the editor label readable without relying on placeholder text. -->
+        <span class="mb-1.5 block text-base font-medium text-ink-gray-7">
           {{ __("Description") }}
         </span>
         <TextEditor

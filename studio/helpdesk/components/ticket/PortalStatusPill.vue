@@ -23,8 +23,8 @@
     <span
       :class="
         size === 'sm'
-          ? 'flex-1 truncate text-base'
-          : 'whitespace-nowrap text-p-sm text-ink-gray-8'
+          ? 'flex-1 truncate text-base font-medium text-ink-gray-9'
+          : 'whitespace-nowrap text-p-sm font-medium text-ink-gray-9'
       "
     >
       {{ label }}
