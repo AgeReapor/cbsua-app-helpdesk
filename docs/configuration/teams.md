@@ -31,9 +31,13 @@ enable a disabled team, or overwrite its assignment-rule configuration.
 ## Routing behavior
 
 Tickets retain the standard `HD Ticket.agent_group` relationship to `HD Team`.
-The CBSUA office is stored separately on the ticket, and server-side validation
-checks that the selected team is mapped to that office. This preserves native
-Helpdesk team assignment and membership behavior while adding an office scope.
+The CBSUA office is stored separately on the ticket. For new tickets, the
+request type's configured team is applied automatically when no team was
+selected. This is a soft default: Administrator and System Manager may
+deliberately assign a ticket to any Helpdesk team, including one mapped to
+another office. Other users must select a team mapped to the ticket's office.
+The office and request type are not rewritten when an administrator changes
+the team, and the default is not reapplied on later edits.
 
 Only members of the assigned team may resolve that team's office tickets;
 System Manager and Administrator retain the documented administrative
