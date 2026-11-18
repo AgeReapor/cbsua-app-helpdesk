@@ -5,11 +5,20 @@ from frappe import _
 
 
 def _is_privileged():
+    """Whether the current user may override office-team routing."""
     return frappe.session.user == "Administrator" or "System Manager" in frappe.get_roles()
 
 
+def _team_is_assigned_to_office(team_name, office):
+    """Return whether an HD Team is explicitly mapped to the given CBSUA office."""
+    if not team_name or not office:
+        return False
+    team = frappe.get_doc("HD Team", team_name)
+    return office in {row.office for row in team.get("offices", []) if row.office}
+
+
 def set_ticket_defaults(doc, method=None):
-    """Apply office defaults and route new tickets by request type."""
+    """Apply office and request-type defaults before ticket validation."""
     if not doc.is_new():
         return
 
@@ -41,20 +50,36 @@ def set_ticket_defaults(doc, method=None):
         if request_type:
             doc.request_type = request_type
 
-    # Route by the selected request type. Preserve an explicit team selection;
-    # validation rejects a team that is not mapped to the ticket's office.
-    if doc.office and doc.request_type and not doc.agent_group:
-        default_team = frappe.db.get_value(
-            "CB Office Request Type",
-            {"name": doc.request_type, "office": doc.office, "enabled": 1},
-            "default_team",
+
+def set_default_ticket_team(doc, method=None):
+    """Soft-assign a new ticket to its request type's default team.
+
+    Runs at before_insert as a final lifecycle guarantee after Helpdesk has
+    prepared the ticket. An explicit team choice always takes precedence.
+    """
+    if not doc.is_new() or doc.agent_group or not doc.office or not doc.request_type:
+        return
+
+    default_team = frappe.db.get_value(
+        "CB Office Request Type",
+        {"name": doc.request_type, "office": doc.office, "enabled": 1},
+        "default_team",
+    )
+    if not default_team:
+        return
+
+    # A configured default is trusted only when its office mapping is valid.
+    # Administrators may still deliberately route a ticket across offices.
+    if not _is_privileged() and not _team_is_assigned_to_office(default_team, doc.office):
+        frappe.throw(
+            _("The default team {0} is not assigned to {1}.").format(default_team, doc.office)
         )
-        if default_team:
-            doc.agent_group = default_team
+
+    doc.agent_group = default_team
 
 
 def validate_ticket_office_routing(doc, method=None):
-    """Validate office/type/team consistency for every ticket write."""
+    """Validate office/type consistency while allowing privileged team overrides."""
     if not doc.office:
         # Existing pre-office tickets remain readable and editable during migration.
         if doc.is_new():
@@ -75,13 +100,15 @@ def validate_ticket_office_routing(doc, method=None):
     elif doc.is_new():
         frappe.throw(_("Select a type of request for the selected office."))
 
-    if doc.agent_group:
-        team = frappe.get_doc("HD Team", doc.agent_group)
-        allowed_offices = {row.office for row in team.get("offices", []) if row.office}
-        if doc.office not in allowed_offices:
-            frappe.throw(
-                _("Team {0} is not assigned to {1}.").format(doc.agent_group, doc.office)
-            )
+    # Office-team mapping is a soft default, not a hard routing boundary for admins.
+    if (
+        doc.agent_group
+        and not _is_privileged()
+        and not _team_is_assigned_to_office(doc.agent_group, doc.office)
+    ):
+        frappe.throw(
+            _("Team {0} is not assigned to {1}.").format(doc.agent_group, doc.office)
+        )
 
     # Resolution must be performed by an agent who belongs to the ticket's
     # assigned team. Administrators retain operational override capability.
