@@ -77,6 +77,49 @@ class TestOfficeBootstrap(FrappeTestCase):
         )
         self.assertEqual(ticket.agent_group, "ICT Support Team")
 
+    def test_all_baseline_request_types_route_to_their_configured_teams(self):
+        bootstrap_offices()
+        bootstrap_office_teams()
+        expected = {
+            "TECH-SUPPORT": ("ICT", "ICT Support Team"),
+            "ICT-INQUIRY": ("ICT", "ICT Support Team"),
+            "REG-INQUIRY": ("REG", "Registrar Support Team"),
+            "ADM-INQUIRY": ("ADM", "Admissions Support Team"),
+            "CSH-INQUIRY": ("CSH", "Cashier Support Team"),
+        }
+        for request_type, (office_code, team_name) in expected.items():
+            office = frappe.db.get_value(
+                "CB Office", {"office_code": office_code}, "name"
+            )
+            ticket = make_ticket(
+                subject=f"Routing {request_type}",
+                office=office,
+                request_type=request_type,
+                via_customer_portal=1,
+            )
+            self.assertEqual(ticket.agent_group, team_name)
+
+    def test_administrator_reassignment_persists_on_ticket_update(self):
+        bootstrap_offices()
+        bootstrap_office_teams()
+        ict = frappe.db.get_value("CB Office", {"office_code": "ICT"}, "name")
+        ticket = make_ticket(
+            subject="Administrator reassignment",
+            office=ict,
+            request_type="TECH-SUPPORT",
+            via_customer_portal=1,
+        )
+        self.assertEqual(ticket.agent_group, "ICT Support Team")
+        previous_user = frappe.session.user
+        try:
+            frappe.set_user("Administrator")
+            ticket.agent_group = "Registrar Support Team"
+            ticket.save(ignore_permissions=True)
+        finally:
+            frappe.set_user(previous_user)
+        ticket.reload()
+        self.assertEqual(ticket.agent_group, "Registrar Support Team")
+
     def test_missing_default_team_does_not_invent_an_assignment(self):
         bootstrap_offices()
         bootstrap_office_teams()
