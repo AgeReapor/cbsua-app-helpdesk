@@ -2,6 +2,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from helpdesk.setup.office_bootstrap import bootstrap_office_teams, bootstrap_offices
+from helpdesk.test_utils import make_ticket
 from helpdesk.setup.office_routing import (
     get_enabled_offices,
     get_office_request_types,
@@ -68,14 +69,28 @@ class TestOfficeBootstrap(FrappeTestCase):
         bootstrap_offices()
         bootstrap_office_teams()
         ict = frappe.db.get_value("CB Office", {"office_code": "ICT"}, "name")
-        ticket = frappe.get_doc({
-            "doctype": "HD Ticket",
-            "office": ict,
-            "request_type": "TECH-SUPPORT",
-            "via_customer_portal": 1,
-        })
-        validate_ticket_office_routing(ticket)
+        ticket = make_ticket(
+            subject="Office routing integration",
+            office=ict,
+            request_type="TECH-SUPPORT",
+            via_customer_portal=1,
+        )
         self.assertEqual(ticket.agent_group, "ICT Support Team")
+
+    def test_missing_default_team_does_not_invent_an_assignment(self):
+        bootstrap_offices()
+        bootstrap_office_teams()
+        frappe.db.set_value(
+            "CB Office Request Type", "TECH-SUPPORT", "default_team", None
+        )
+        ict = frappe.db.get_value("CB Office", {"office_code": "ICT"}, "name")
+        ticket = make_ticket(
+            subject="Unconfigured office route",
+            office=ict,
+            request_type="TECH-SUPPORT",
+            via_customer_portal=1,
+        )
+        self.assertFalse(ticket.agent_group)
 
     def test_explicit_team_selection_is_preserved(self):
         bootstrap_offices()
