@@ -2,6 +2,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from helpdesk.setup.office_bootstrap import bootstrap_office_teams, bootstrap_offices
+from helpdesk.test_utils import make_ticket
 from helpdesk.setup.office_routing import (
     get_enabled_offices,
     get_office_request_types,
@@ -62,6 +63,137 @@ class TestOfficeBootstrap(FrappeTestCase):
         self.assertEqual(frappe.db.count("HD Team"), before)
         refreshed = frappe.get_doc("HD Team", "ICT Support Team")
         self.assertEqual(len(refreshed.offices), 2)
+
+
+    def test_request_type_default_team_routes_new_ticket(self):
+        bootstrap_offices()
+        bootstrap_office_teams()
+        ict = frappe.db.get_value("CB Office", {"office_code": "ICT"}, "name")
+        ticket = make_ticket(
+            subject="Office routing integration",
+            office=ict,
+            request_type="TECH-SUPPORT",
+            via_customer_portal=1,
+        )
+        self.assertEqual(ticket.agent_group, "ICT Support Team")
+
+    def test_all_baseline_request_types_route_to_their_configured_teams(self):
+        bootstrap_offices()
+        bootstrap_office_teams()
+        expected = {
+            "TECH-SUPPORT": ("ICT", "ICT Support Team"),
+            "ICT-INQUIRY": ("ICT", "ICT Support Team"),
+            "REG-INQUIRY": ("REG", "Registrar Support Team"),
+            "ADM-INQUIRY": ("ADM", "Admissions Support Team"),
+            "CSH-INQUIRY": ("CSH", "Cashier Support Team"),
+        }
+        for request_type, (office_code, team_name) in expected.items():
+            office = frappe.db.get_value(
+                "CB Office", {"office_code": office_code}, "name"
+            )
+            ticket = make_ticket(
+                subject=f"Routing {request_type}",
+                office=office,
+                request_type=request_type,
+                via_customer_portal=1,
+            )
+            self.assertEqual(ticket.agent_group, team_name)
+
+    def test_administrator_reassignment_persists_on_ticket_update(self):
+        bootstrap_offices()
+        bootstrap_office_teams()
+        ict = frappe.db.get_value("CB Office", {"office_code": "ICT"}, "name")
+        ticket = make_ticket(
+            subject="Administrator reassignment",
+            office=ict,
+            request_type="TECH-SUPPORT",
+            via_customer_portal=1,
+        )
+        self.assertEqual(ticket.agent_group, "ICT Support Team")
+        previous_user = frappe.session.user
+        try:
+            frappe.set_user("Administrator")
+            ticket.agent_group = "Registrar Support Team"
+            ticket.save(ignore_permissions=True)
+        finally:
+            frappe.set_user(previous_user)
+        ticket.reload()
+        self.assertEqual(ticket.agent_group, "Registrar Support Team")
+
+    def test_missing_default_team_does_not_invent_an_assignment(self):
+        bootstrap_offices()
+        bootstrap_office_teams()
+        frappe.db.set_value(
+            "CB Office Request Type", "TECH-SUPPORT", "default_team", None
+        )
+        ict = frappe.db.get_value("CB Office", {"office_code": "ICT"}, "name")
+        ticket = make_ticket(
+            subject="Unconfigured office route",
+            office=ict,
+            request_type="TECH-SUPPORT",
+            via_customer_portal=1,
+        )
+        self.assertFalse(ticket.agent_group)
+
+    def test_explicit_team_selection_is_preserved(self):
+        bootstrap_offices()
+        bootstrap_office_teams()
+        ict = frappe.db.get_value("CB Office", {"office_code": "ICT"}, "name")
+        ticket = frappe.get_doc({
+            "doctype": "HD Ticket",
+            "office": ict,
+            "request_type": "TECH-SUPPORT",
+            "agent_group": "ICT Support Team",
+            "via_customer_portal": 1,
+        })
+        validate_ticket_office_routing(ticket)
+        self.assertEqual(ticket.agent_group, "ICT Support Team")
+
+    def test_administrator_can_override_office_team_default(self):
+        bootstrap_offices()
+        bootstrap_office_teams()
+        ict = frappe.db.get_value("CB Office", {"office_code": "ICT"}, "name")
+        ticket = frappe.get_doc({
+            "doctype": "HD Ticket",
+            "office": ict,
+            "request_type": "TECH-SUPPORT",
+            "agent_group": "Registrar Support Team",
+            "via_customer_portal": 1,
+        })
+        previous_user = frappe.session.user
+        try:
+            frappe.set_user("Administrator")
+            validate_ticket_office_routing(ticket)
+        finally:
+            frappe.set_user(previous_user)
+        self.assertEqual(ticket.agent_group, "Registrar Support Team")
+
+    def test_non_admin_cannot_override_office_team_mapping(self):
+        bootstrap_offices()
+        bootstrap_office_teams()
+        ict = frappe.db.get_value("CB Office", {"office_code": "ICT"}, "name")
+        ticket = frappe.get_doc({
+            "doctype": "HD Ticket",
+            "office": ict,
+            "request_type": "TECH-SUPPORT",
+            "agent_group": "Registrar Support Team",
+            "via_customer_portal": 1,
+        })
+        previous_user = frappe.session.user
+        try:
+            frappe.set_user("office-routing-test@example.com")
+            with self.assertRaises(frappe.ValidationError):
+                validate_ticket_office_routing(ticket)
+        finally:
+            frappe.set_user(previous_user)
+
+    def test_request_type_rejects_default_team_from_another_office(self):
+        bootstrap_offices()
+        bootstrap_office_teams()
+        request_type = frappe.get_doc("CB Office Request Type", "TECH-SUPPORT")
+        request_type.default_team = "Registrar Support Team"
+        with self.assertRaises(frappe.ValidationError):
+            request_type.save(ignore_permissions=True)
 
     def test_bootstrap_is_idempotent(self):
         bootstrap_offices()

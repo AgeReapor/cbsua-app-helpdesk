@@ -8,6 +8,7 @@
   "request_type_name",
   "request_type_code",
   "office",
+  "default_team",
   "enabled",
   "display_order",
   "description"
@@ -35,6 +36,13 @@
    "options": "CB Office",
    "reqd": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "default_team",
+   "label": "Default Team",
+   "fieldtype": "Link",
+   "options": "HD Team",
+   "description": "Tickets with this request type are automatically assigned to this Helpdesk team."
   },
   {
    "fieldname": "enabled",

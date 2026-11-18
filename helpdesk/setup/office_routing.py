@@ -5,22 +5,33 @@ from frappe import _
 
 
 def _is_privileged():
+    """Whether the current user may override office-team routing."""
     return frappe.session.user == "Administrator" or "System Manager" in frappe.get_roles()
 
 
+def _team_is_assigned_to_office(team_name, office):
+    """Return whether an HD Team is explicitly mapped to the given CBSUA office."""
+    if not team_name or not office:
+        return False
+    team = frappe.get_doc("HD Team", team_name)
+    return office in {row.office for row in team.get("offices", []) if row.office}
+
+
 def set_ticket_defaults(doc, method=None):
-    """Set the configured default office for newly created legacy/API tickets."""
-    if not doc.is_new() or doc.office:
+    """Apply office and request-type defaults before ticket validation."""
+    if not doc.is_new():
         return
-    default_office = frappe.db.get_single_value("HD Settings", "default_cb_office")
-    if not default_office or not frappe.db.get_value(
-        "CB Office", {"name": default_office, "enabled": 1}, "name"
-    ):
-        default_office = frappe.db.get_value(
-            "CB Office", {"is_default": 1, "enabled": 1}, "name"
-        )
-    if default_office:
-        doc.office = default_office
+
+    if not doc.office:
+        default_office = frappe.db.get_single_value("HD Settings", "default_cb_office")
+        if not default_office or not frappe.db.get_value(
+            "CB Office", {"name": default_office, "enabled": 1}, "name"
+        ):
+            default_office = frappe.db.get_value(
+                "CB Office", {"is_default": 1, "enabled": 1}, "name"
+            )
+        if default_office:
+            doc.office = default_office
 
     # Email integrations and internal agent-created tickets predate the portal's
     # explicit request-type selector. Give those flows the office's Inquiry type
@@ -41,7 +52,7 @@ def set_ticket_defaults(doc, method=None):
 
 
 def validate_ticket_office_routing(doc, method=None):
-    """Validate office/type/team consistency for every ticket write."""
+    """Validate office/type consistency while allowing privileged team overrides."""
     if not doc.office:
         # Existing pre-office tickets remain readable and editable during migration.
         if doc.is_new():
@@ -62,17 +73,32 @@ def validate_ticket_office_routing(doc, method=None):
     elif doc.is_new():
         frappe.throw(_("Select a type of request for the selected office."))
 
-    if doc.agent_group and (
-        doc.is_new()
-        or doc.has_value_changed("agent_group")
-        or doc.has_value_changed("office")
+    # Apply the request type's team only when no team was explicitly selected.
+    # This runs after office/type defaults and validation, in the ticket save lifecycle.
+    if doc.is_new() and not doc.agent_group and doc.request_type:
+        default_team = frappe.db.get_value(
+            "CB Office Request Type",
+            {"name": doc.request_type, "office": doc.office, "enabled": 1},
+            "default_team",
+        )
+        if default_team:
+            if not _team_is_assigned_to_office(default_team, doc.office):
+                frappe.throw(
+                    _("The default team {0} is not assigned to {1}.").format(
+                        default_team, doc.office
+                    )
+                )
+            doc.agent_group = default_team
+
+    # Office-team mapping is a soft default, not a hard routing boundary for admins.
+    if (
+        doc.agent_group
+        and not _is_privileged()
+        and not _team_is_assigned_to_office(doc.agent_group, doc.office)
     ):
-        team = frappe.get_doc("HD Team", doc.agent_group)
-        allowed_offices = {row.office for row in team.get("offices", []) if row.office}
-        if doc.office not in allowed_offices:
-            frappe.throw(
-                _("Team {0} is not assigned to {1}.").format(doc.agent_group, doc.office)
-            )
+        frappe.throw(
+            _("Team {0} is not assigned to {1}.").format(doc.agent_group, doc.office)
+        )
 
     # Resolution must be performed by an agent who belongs to the ticket's
     # assigned team. Administrators retain operational override capability.

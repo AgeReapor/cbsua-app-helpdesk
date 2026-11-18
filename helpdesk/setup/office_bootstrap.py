@@ -1,8 +1,9 @@
-"""Idempotent CBSUA office and request-type bootstrap.
+"""Idempotent CBSUA office, request-type, and team bootstrap.
 
 Safe to run after install and on every migrate. Existing office settings are
-preserved; only missing baseline records are inserted. Teams are deliberately
-not assigned automatically because membership is an operational decision.
+preserved; only missing baseline records are inserted. Office teams are created
+without staff membership because team membership is an operational decision.
+Request types receive configurable default-team destinations.
 """
 
 import frappe
@@ -108,6 +109,24 @@ def bootstrap_office_teams():
         if office not in assigned_offices:
             team.append("offices", {"office": office})
             team.save(ignore_permissions=True)
+
+    # Configure only missing defaults; administrator-defined destinations win.
+    for request_code, team_name in (
+        ("TECH-SUPPORT", "ICT Support Team"),
+        ("ICT-INQUIRY", "ICT Support Team"),
+        ("REG-INQUIRY", "Registrar Support Team"),
+        ("ADM-INQUIRY", "Admissions Support Team"),
+        ("CSH-INQUIRY", "Cashier Support Team"),
+    ):
+        if (
+            frappe.db.exists("CB Office Request Type", request_code)
+            and frappe.db.exists("HD Team", team_name)
+            and not frappe.db.get_value("CB Office Request Type", request_code, "default_team")
+        ):
+            frappe.db.set_value(
+                "CB Office Request Type", request_code, "default_team", team_name,
+                update_modified=False,
+            )
 
 
 def execute():
