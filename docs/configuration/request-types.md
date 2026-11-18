@@ -10,10 +10,12 @@ Each request type has a **Default Team** Link to the existing Helpdesk
 selected request type's default team and sets the ticket's native
 `HD Ticket.agent_group` field automatically.
 
-The selected team must be mapped to the request type's office through the
-team's **Assigned Offices** table. Invalid cross-office mappings are rejected
-server-side. A valid team explicitly selected by an agent is retained; the
-default team is used when the ticket has no team yet.
+For a new ticket, the server applies the configured default team after the
+office and request type have been validated. An explicitly selected team is
+preserved. The mapping is a soft default rather than an administrative
+restriction: the **Administrator** and users with the **System Manager** role
+may deliberately assign a ticket to a team mapped to another office. Other
+users remain subject to the office-team mapping check.
 
 ## Initial mappings
 
