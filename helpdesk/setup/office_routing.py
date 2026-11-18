@@ -51,33 +51,6 @@ def set_ticket_defaults(doc, method=None):
             doc.request_type = request_type
 
 
-def set_default_ticket_team(doc, method=None):
-    """Soft-assign a new ticket to its request type's default team.
-
-    Runs at before_insert as a final lifecycle guarantee after Helpdesk has
-    prepared the ticket. An explicit team choice always takes precedence.
-    """
-    if not doc.is_new() or doc.agent_group or not doc.office or not doc.request_type:
-        return
-
-    default_team = frappe.db.get_value(
-        "CB Office Request Type",
-        {"name": doc.request_type, "office": doc.office, "enabled": 1},
-        "default_team",
-    )
-    if not default_team:
-        return
-
-    # A configured default is trusted only when its office mapping is valid.
-    # Administrators may still deliberately route a ticket across offices.
-    if not _is_privileged() and not _team_is_assigned_to_office(default_team, doc.office):
-        frappe.throw(
-            _("The default team {0} is not assigned to {1}.").format(default_team, doc.office)
-        )
-
-    doc.agent_group = default_team
-
-
 def validate_ticket_office_routing(doc, method=None):
     """Validate office/type consistency while allowing privileged team overrides."""
     if not doc.office:
@@ -99,6 +72,23 @@ def validate_ticket_office_routing(doc, method=None):
             frappe.throw(_("The selected request type is not enabled for this office."))
     elif doc.is_new():
         frappe.throw(_("Select a type of request for the selected office."))
+
+    # Apply the request type's team only when no team was explicitly selected.
+    # This runs after office/type defaults and validation, in the ticket save lifecycle.
+    if doc.is_new() and not doc.agent_group and doc.request_type:
+        default_team = frappe.db.get_value(
+            "CB Office Request Type",
+            {"name": doc.request_type, "office": doc.office, "enabled": 1},
+            "default_team",
+        )
+        if default_team:
+            if not _team_is_assigned_to_office(default_team, doc.office):
+                frappe.throw(
+                    _("The default team {0} is not assigned to {1}.").format(
+                        default_team, doc.office
+                    )
+                )
+            doc.agent_group = default_team
 
     # Office-team mapping is a soft default, not a hard routing boundary for admins.
     if (
