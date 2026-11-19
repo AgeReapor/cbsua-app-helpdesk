@@ -38,6 +38,10 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         self.assertIsInstance(UUID(key), UUID)
         self.assertNotEqual(key, _ticket_key(_token_digest("another-token")))
 
+    def test_native_ticket_key_is_unique_in_the_doctype_schema(self):
+        key_field = frappe.get_meta("HD Ticket").get_field("key")
+        self.assertTrue(key_field.unique)
+
     def test_guest_owned_ticket_is_not_readable_by_guest_or_matching_email_user(self):
         email = unique_email("anonymous-requester")
         create_user(email)
