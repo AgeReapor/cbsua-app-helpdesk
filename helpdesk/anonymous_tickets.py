@@ -15,6 +15,8 @@ from frappe import _
 from frappe.rate_limiter import rate_limit
 from frappe.utils import get_url, validate_email_address
 
+from helpdesk.utils import CUSTOMER_PORTAL_ROOT
+
 PENDING_TTL_SECONDS = 30 * 60
 MAX_DESCRIPTION_LENGTH = 10_000
 CACHE_PREFIX = "helpdesk:guest-ticket:"
@@ -112,7 +114,7 @@ def start_guest_submission(
         _cache_key(digest), payload, expires_in_sec=PENDING_TTL_SECONDS
     )
 
-    verify_url = f"{get_url()}/help/guest/new?verify={token}"
+    verify_url = f"{get_url()}{CUSTOMER_PORTAL_ROOT}/guest/new?verify={token}"
     greeting = f"Hello {html.escape(payload['full_name'])}," if payload["full_name"] else "Hello,"
     frappe.sendmail(
         recipients=[payload["email"]],
