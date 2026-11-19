@@ -198,7 +198,7 @@ def verify_guest_submission(token: str) -> dict:
         payload["request_type"],
     )
 
-    description_html = html.escape(payload["description"]).replace("\\n", "<br>")
+    description_html = html.escape(payload["description"]).replace("\n", "<br>")
 
     ticket = frappe.get_doc(
         {
