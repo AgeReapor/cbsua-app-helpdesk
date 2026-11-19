@@ -7,6 +7,10 @@ from helpdesk.api.config import get_favicon
 
 def get_boot() -> dict:
     """In boot so the timezone is there before the first date renders."""
+    request = getattr(frappe.local, "request", None)
+    request_path = (getattr(request, "path", "") or "").rstrip("/") or "/"
+    is_guest_submission_route = request_path == "/help/guest/new"
+
     return {
         "system_timezone": get_system_timezone(),
         # The zone the customer picked in Settings, else the system's, as on the desk.
@@ -16,9 +20,10 @@ def get_boot() -> dict:
             and frappe.db.get_value("User", frappe.session.user, "time_zone")
         )
         or get_system_timezone(),
-        # Read before the first render, so a private knowledge base never flashes for a guest
+        # Keep the private KB protected, but let the explicitly public guest form load.
         "send_guest_to_login": frappe.session.user == "Guest"
-        and not frappe.db.get_single_value("HD Settings", "public_knowledge_base"),
+        and not frappe.db.get_single_value("HD Settings", "public_knowledge_base")
+        and not is_guest_submission_route,
         # Frappe renders the home page at `/` instead of redirecting to it
         "home_page": "/" + get_home_page().lstrip("/"),
         # Pages put it in their tab title before get_config answers
