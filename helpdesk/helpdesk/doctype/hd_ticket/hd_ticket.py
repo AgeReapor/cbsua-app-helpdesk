@@ -1506,11 +1506,12 @@ def publish_assignment_update(todo, method=None):
 # is being called from hooks. `doc` is the ticket to check against
 def has_permission(doc, user=None):
     user = user or frappe.session.user
-    # A Guest session is never a ticket reader, including tickets it created.
-    if user == "Guest":
-        return False
     if is_admin(user):
         return True
+    if doc.owner == "Guest":
+        if not is_agent(user):
+            return False
+        return _agent_has_permission(doc, user)
     if user in (doc.contact, doc.raised_by, doc.owner):
         return True
     if is_customer_manager(doc.customer, user):
@@ -1563,6 +1564,8 @@ def permission_query(user: str | None = None):
 def _customer_query(user: str) -> str:
     """Non-agents see their own tickets, plus all tickets of customers they manage."""
     query = _get_base_visibility(user)
+    # A Guest-owned ticket is never exposed through an email/username collision.
+    query = f"({query}) AND (`tabHD Ticket`.owner != 'Guest')"
     managed_customers = _get_managed_customers(user)
     if managed_customers:
         query += " OR " + _build_in_clause("customer", managed_customers)
