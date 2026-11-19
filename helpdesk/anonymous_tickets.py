@@ -185,3 +185,32 @@ def verify_guest_submission(token: str) -> dict:
             ticket.send_acknowledgement_email()
         frappe.cache.delete_value(cache_key)
         return {"success": True, "ticket": ticket.name}
+
+
+
+def notify_anonymous_requester_status(doc, method=None) -> None:
+    """Email a minimal, requester-safe notice when an agent changes ticket status."""
+    if (
+        doc.owner != "Guest"
+        or not doc.via_customer_portal
+        or not doc.raised_by
+        or not doc.has_value_changed("status")
+    ):
+        return
+
+    status_label = frappe.db.get_value("HD Ticket Status", doc.status, "label") or doc.status
+    message = (
+        f"<p>{_('Your CBSUA Helpdesk request has a status update.')}</p>"
+        f"<p><strong>{_('Ticket')}:</strong> {html.escape(doc.name)}</p>"
+        f"<p><strong>{_('Subject')}:</strong> {html.escape(doc.subject or '')}</p>"
+        f"<p><strong>{_('Status')}:</strong> {html.escape(status_label or '')}</p>"
+    )
+    frappe.sendmail(
+        recipients=[doc.raised_by],
+        subject=_("Ticket #{0}: status update").format(doc.name),
+        message=message,
+        reference_doctype="HD Ticket",
+        reference_name=doc.name,
+        in_reply_to=doc._last_threadable_communication(),
+        email_headers={"X-Auto-Generated": "hd-anonymous-status-update"},
+    )
