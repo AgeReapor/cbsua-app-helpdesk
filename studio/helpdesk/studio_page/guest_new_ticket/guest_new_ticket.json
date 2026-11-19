@@ -1,0 +1,71 @@
+{
+  "allow_guest": 1,
+  "blocks": [
+    {
+      "blockName": "body",
+      "componentId": "body",
+      "componentName": "container",
+      "originalElement": "div",
+      "classes": [
+        "bg-surface-base",
+        "flex",
+        "flex-col",
+        "h-full",
+        "overflow-x-hidden",
+        "w-[inherit]"
+      ],
+      "children": [
+        {
+          "blockName": "Header",
+          "componentId": "header-topbar",
+          "componentName": "header",
+          "isStudioComponent": true
+        },
+        {
+          "blockName": "content",
+          "componentId": "content",
+          "componentName": "container",
+          "originalElement": "div",
+          "classes": [
+            "flex",
+            "flex-col",
+            "grow",
+            "overflow-y-auto",
+            "w-full"
+          ],
+          "children": [
+            {
+              "componentId": "guest-ticket-submission",
+              "componentName": "GuestTicketSubmission",
+              "isCustomVueComponent": true
+            }
+          ]
+        },
+        {
+          "blockName": "KB Settings",
+          "componentId": "kb_settings-ref",
+          "componentName": "kb_settings",
+          "isStudioComponent": true
+        }
+      ]
+    }
+  ],
+  "creation": "2026-11-19 00:00:00.000000",
+  "docstatus": 0,
+  "doctype": "Studio Page",
+  "frappe_app": "helpdesk",
+  "idx": 0,
+  "is_standard": 1,
+  "modified": "2026-11-19 00:00:00.000000",
+  "modified_by": "Administrator",
+  "name": "guest_new_ticket",
+  "owner": "Administrator",
+  "page_name": "page-guest-anon-ticket",
+  "page_title": "Submit a request",
+  "published": 1,
+  "resources": [],
+  "route": "/guest/new",
+  "studio_app": "helpdesk",
+  "tab_title": "{{ t('Submit a request') }} | {{ brandName }}",
+  "variables": []
+}
