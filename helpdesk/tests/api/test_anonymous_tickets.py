@@ -14,6 +14,16 @@ from helpdesk.anonymous_tickets import (
 
 
 class TestAnonymousTicketSubmission(IntegrationTestCase):
+    def test_anonymous_insert_rules_preserve_verified_email(self):
+        ticket = frappe.new_doc("HD Ticket")
+        ticket.flags.anonymous_submission = True
+        ticket.raised_by = "visitor@example.com"
+
+        ticket.apply_ticket_insert_rules()
+
+        self.assertEqual(ticket.raised_by, "visitor@example.com")
+        self.assertEqual(ticket.via_customer_portal, 1)
+
     def test_native_ticket_key_is_unique_for_idempotent_creation(self):
         self.assertTrue(frappe.get_meta("HD Ticket").get_field("key").unique)
 
