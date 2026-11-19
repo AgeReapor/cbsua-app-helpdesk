@@ -168,7 +168,7 @@ def verify_guest_submission(token: str) -> dict:
             {
                 "doctype": "HD Ticket",
                 "subject": payload["subject"],
-                "description": payload["description"],
+                "description": html.escape(payload["description"]).replace("\\n", "<br>") + (f"<p>Submitted by: {html.escape(payload['full_name'])}</p>" if payload["full_name"] else ""),
                 "raised_by": payload["email"],
                 "via_customer_portal": 1,
                 "office": payload["office"],
