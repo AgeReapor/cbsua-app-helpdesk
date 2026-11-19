@@ -8,6 +8,12 @@ import frappe
 class AnonymousHDTicketMixin:
     """Keep email-only requesters separate from authenticated Contact identities."""
 
+    def before_insert(self) -> None:
+        super().before_insert()
+        if getattr(self.flags, "anonymous_submission", False):
+            # Frappe sets owner from the active session before before_insert runs.
+            self.owner = "Guest"
+
     def apply_ticket_insert_rules(self) -> None:
         if getattr(self.flags, "anonymous_submission", False):
             # The guest service owns requester identity and all insertable fields.
