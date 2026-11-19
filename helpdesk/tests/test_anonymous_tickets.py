@@ -13,6 +13,7 @@ from helpdesk.anonymous_tickets import (
     _ticket_key,
     _token_digest,
     _validate_submission,
+    verify_guest_submission,
 )
 
 
@@ -71,8 +72,6 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         self.assertTrue(frappe.get_meta("HD Ticket").get_field("key").unique)
 
     def test_invalid_verification_token_is_rejected(self):
-        from helpdesk.anonymous_tickets import verify_guest_submission
-
         with self.assertRaises(frappe.ValidationError):
             verify_guest_submission("invalid")
 
