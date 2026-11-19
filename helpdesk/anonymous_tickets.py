@@ -79,6 +79,8 @@ def _validate_submission(
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 def get_guest_form_options() -> dict:
     """Public, read-only options needed by the guest form; no ticket data."""
+    # These enabled routing choices are intentionally public; Guest has no
+    # general read permission on either configuration DocType.
     offices = frappe.get_all(
         "CB Office",
         filters={"enabled": 1},
