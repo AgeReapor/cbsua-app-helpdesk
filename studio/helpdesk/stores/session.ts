@@ -16,7 +16,7 @@ if (!document.getElementById('lucide-sprite')) spritePlugin.install()
 
 // The private-KB exception is intentionally limited to this one public submission route.
 function isGuestSubmissionRoute() {
-  return location.pathname.replace(/\\/+$/, '') === '/help/guest/new'
+  return location.pathname.replace(/\/+$/, '') === '/help/guest/new'
 }
 
 if (window.boot?.send_guest_to_login && !isGuestSubmissionRoute()) {
