@@ -1506,6 +1506,9 @@ def publish_assignment_update(todo, method=None):
 # is being called from hooks. `doc` is the ticket to check against
 def has_permission(doc, user=None):
     user = user or frappe.session.user
+    # A Guest session is never a ticket reader, including tickets it created.
+    if user == "Guest":
+        return False
     if is_admin(user):
         return True
     if user in (doc.contact, doc.raised_by, doc.owner):
@@ -1548,6 +1551,8 @@ def _agent_has_permission(doc, user: str) -> bool:
 # https://frappeframework.com/docs/user/en/python-api/hooks#modify-list-query
 def permission_query(user: str | None = None):
     user = user or frappe.session.user
+    if user == "Guest":
+        return "1=0"
     if is_admin(user):
         return
     if not is_agent(user):
