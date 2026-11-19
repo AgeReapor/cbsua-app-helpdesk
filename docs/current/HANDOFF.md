@@ -390,7 +390,7 @@ Avoid combining the login-template change, Helpdesk route policy, and deployment
 - [Guest Studio page definition](https://github.com/AgeReapor/cbsua-app-helpdesk/blob/feat/anonymous-tickets/studio/helpdesk/studio_page/guest_new_ticket/guest_new_ticket.json)
 - [KB homepage definition](https://github.com/AgeReapor/cbsua-app-helpdesk/blob/feat/anonymous-tickets/studio/helpdesk/studio_page/public_kb/public_kb.json)
 - [Portal route definitions](https://github.com/AgeReapor/cbsua-app-helpdesk/blob/feat/anonymous-tickets/shared/src/portalRoutes.ts)
-- [Framework login template](https://github.com/AgeReapor/cbsua-app-frappe/blob/develop/frappe/www/login.html) — shared Frappe login page; verify target framework SHA before editing.
+- [Framework login template](https://github.com/AgeReapor/cbsua-app-frappe/blob/feat/anonymous-helpdesk-login-cta/frappe/www/login.html) — shared Frappe login page; companion implementation branch: [feat/anonymous-helpdesk-login-cta](https://github.com/AgeReapor/cbsua-app-frappe/tree/feat/anonymous-helpdesk-login-cta).
 - [Feature guide](../features/anonymous-ticket-submission.md)
 - [Architecture notes](architecture.md)
 
@@ -414,7 +414,7 @@ The receiving agent should replace/update this section at the next handoff:
 
 - **Date / agent:**
 - **Branch:**
-- **Latest implementation commit SHAs:** Helpdesk `45c4bd8d3603d61d6362280be95ead16d60a2cfb`; Frappe `5ae23fcaa85436fb818f2716eafb543bee2849ae` (branch `feat/anonymous-helpdesk-login-cta`). Latest Helpdesk documentation commit before this handoff refresh: `d799d860b9daeb8181d5492ea1da39cfa233e32c`.
+- **Latest implementation commit SHAs:** Helpdesk `45c4bd8d3603d61d6362280be95ead16d60a2cfb`; Frappe `5ae23fcaa85436fb818f2716eafb543bee2849ae` (branch `feat/anonymous-helpdesk-login-cta`). Latest Helpdesk documentation commit before this handoff refresh: `02274ed4ec7b1b3b41d94f837dab53ac505850a9`.
 - **Repositories changed:** `AgeReapor/cbsua-app-helpdesk` (`feat/anonymous-tickets`), `AgeReapor/cbsua-app-frappe` (`feat/anonymous-helpdesk-login-cta`)
 - **Source changes:** exact `/help/guest/new` bypass in both guards; marker + same-origin Referer-gated login CTA; removed KB top CTA; Guest-hidden empty-state actions via `canCreateTicket`.
 - **Summary of implementation:**
