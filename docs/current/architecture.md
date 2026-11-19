@@ -269,3 +269,27 @@ The initial trace has **not yet established** all of the following:
 
 These are open Phase 0 items. Do not claim inbound email replies are supported for anonymous tickets until they are verified end-to-end.
 
+
+
+### Customer notification and inbound email trace
+
+Additional sources inspected: the latter sections of `hd_ticket.py`, `helpdesk/overrides/email_account.py`, and the ticket permission helpers in `hd_ticket.py`.
+
+- `HDTicket.notify_customers()` calls `ping_customers()`.
+- `get_customers_to_notify()` starts with `raised_by`, owner, contact and customer managers, but then resolves those candidates against enabled Frappe `User` records. An arbitrary external email string with no User record is therefore not an email-notification recipient in this realtime path.
+- Ticket updates publish realtime events and user-scoped notifications; that is not equivalent to sending email to an anonymous requester.
+- `send_acknowledgement_email()` sends to `raised_by`, but `after_insert()` invokes it only when `via_customer_portal` is false. The authenticated portal sets this flag true, so a guest portal submission following the same path would also skip the normal acknowledgement.
+- Agent replies can send email to `raised_by` by default through `reply_via_agent()`, subject to the existing Helpdesk email settings and configured outgoing account. This path should be validated with a real test account and template.
+- The custom inbound Email Account override extends Frappe's Message-ID/References thread matching. Incoming Communications linked to a ticket cause `on_communication_update()` to update customer-response timestamps and reopen the ticket where appropriate.
+
+**Important open security question:** the trace confirms thread matching, but does not establish that an inbound message's From address is required to match the ticket's verified requester email before it is accepted as a customer reply. Do not claim sender ownership is validated merely because a message is attached to the ticket thread. Inspect Frappe's Communication/Email receive path and add an explicit policy/test if anonymous email replies are included.
+
+**Design consequence for the MVP:** an anonymous ticket needs a deliberate requester email confirmation path, because the native portal acknowledgement is skipped and user-scoped realtime notifications cannot reach an email-only requester. Do not assume all ticket status changes currently produce requester emails. Define a minimal email event policy (submission confirmation, public agent reply, and any specifically required status transitions) and implement it using Helpdesk's existing email/template facilities where appropriate. Internal comments must never trigger requester mail.
+
+### Ticket permission and broad Guest permission hazard
+
+The ticket controller's custom `has_permission(doc, user)` grants direct customer visibility when the user matches `doc.contact`, `doc.raised_by`, or `doc.owner`, with additional customer-manager and agent checks. The list permission query similarly scopes customer rows to the current user's direct associations and managed customers. An anonymous email string is not itself a Frappe User identity, so do not assume these existing authenticated customer permissions automatically grant safe anonymous access.
+
+The same controller file also defines `set_guest_ticket_creation_permission()`, which programmatically grants the Guest role permission-level-zero read, write and create permissions on `HD Ticket`. A corresponding removal helper exists. The current source inspection has not established that the grant helper is invoked in the installed app lifecycle; verify its call sites and the effective site permissions before changing anything.
+
+**Non-negotiable:** do not invoke this broad Guest permission helper to implement the feature. Guest users must not receive general ticket read/write access. Use a narrow guest submission service that creates tickets server-side, and leave normal ticket read/list APIs protected.
