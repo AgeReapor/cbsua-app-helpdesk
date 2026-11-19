@@ -43,6 +43,32 @@ class AnonymousHDTicketMixin:
             return
         super().generate_key()
 
+    @frappe.whitelist(methods=["POST"])
+    def reply_via_agent(
+        self,
+        message: str,
+        from_email: dict | None = None,
+        to: str | None = None,
+        cc: str | None = None,
+        bcc: str | None = None,
+        attachments: list[str] | None = None,
+    ) -> str:
+        if not getattr(self.flags, "anonymous_submission", False) and self.owner != "Guest":
+            return super().reply_via_agent(
+                message, from_email, to, cc, bcc, attachments or []
+            )
+
+        # The native customer-portal reply template links to ticket detail. Guest
+        # requesters cannot open that page, so send the public reply body without it.
+        via_customer_portal = self.via_customer_portal
+        self.via_customer_portal = 0
+        try:
+            return super().reply_via_agent(
+                message, from_email, to, cc, bcc, attachments or []
+            )
+        finally:
+            self.via_customer_portal = via_customer_portal
+
     def create_communication_via_contact(
         self,
         message: str,
