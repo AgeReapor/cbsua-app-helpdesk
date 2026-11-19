@@ -51,11 +51,12 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Button, Combobox, FormControl, call } from 'frappe-ui'
 import { __ } from '@helpdesk/shared/translation'
 
 const route = useRoute()
+const router = useRouter()
 const form = reactive({ full_name: '', email: '', office: '', request_type: '', subject: '', description: '' })
 const offices = ref<any[]>([])
 const loadingOptions = ref(true)
@@ -80,6 +81,7 @@ onMounted(async () => {
   if (token) {
     // Do not consume the token on page load; mail security scanners may prefetch links.
     verificationToken.value = token
+    void router.replace({ query: { ...route.query, verify: undefined } })
     return
   }
   try {
