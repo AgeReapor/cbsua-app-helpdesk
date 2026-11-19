@@ -74,7 +74,7 @@ def _validate_submission(
     }
 
 
-@frappe.whitelist(allow_guest=True, methods=["GET"])
+@frappe.whitelist(allow_guest=True, methods=["POST"])
 def get_guest_form_options() -> dict:
     """Public, read-only options needed by the guest form; no ticket data."""
     offices = frappe.get_all(
