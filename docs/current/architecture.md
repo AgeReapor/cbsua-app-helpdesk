@@ -338,7 +338,7 @@ The framework hook was confirmed in the CBSUA Frappe fork's current `develop` so
 
 The guest API accepts only email, optional name, subject, plain-text description, office, and request type. It does not accept a ticket DocType payload, contact/customer, agent group, assignment, priority, status, internal fields, or attachments. The pending payload is cached for 30 minutes; the emailed token is random, and only its digest is used as the cache key. Verification is serialized with a cache lock and uses a deterministic HD Ticket `key` to make retries return the already-created ticket.
 
-The server inserts the native ticket through the existing controller with a narrow `ignore_permissions=True` operation. This does not grant the Guest role generic DocType permissions. The verified guest path intentionally leaves `contact` and `customer` unset, even when the email matches a Contact belonging to another account.
+The server inserts the native ticket through the existing controller with a narrow `ignore_permissions=True` operation. This does not grant the Guest role generic DocType permissions. The verified guest path explicitly sets `owner = Guest` and leaves `contact` and `customer` unset, even when the email matches a Contact or login name. The extension preserves the verified email even when a visitor is already signed in, rather than letting normal insert rules replace it with the current session user.
 
 ### Current limitations and validation gates
 
