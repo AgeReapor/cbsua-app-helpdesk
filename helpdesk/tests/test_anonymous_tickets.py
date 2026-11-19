@@ -43,14 +43,17 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
                 "TECH-SUPPORT",
             )
 
-        self.assertEqual(result, {
-            "email": "requester@example.com",
-            "full_name": "Campus Visitor",
-            "subject": "Cannot access Wi-Fi",
-            "description": "Wi-Fi is unavailable in the library.",
-            "office": "ICT",
-            "request_type": "TECH-SUPPORT",
-        })
+        self.assertEqual(
+            result,
+            {
+                "email": "requester@example.com",
+                "full_name": "Campus Visitor",
+                "subject": "Cannot access Wi-Fi",
+                "description": "Wi-Fi is unavailable in the library.",
+                "office": "ICT",
+                "request_type": "TECH-SUPPORT",
+            },
+        )
 
     def test_submission_rejects_request_type_from_another_office(self):
         def exists(doctype, filters):
@@ -97,7 +100,12 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         with patch("helpdesk.anonymous_tickets.frappe.db.exists", return_value=True):
             with self.assertRaises(frappe.ValidationError):
                 _validate_submission(
-                    "requester@example.com", "", "   ", "Details", "ICT", "TECH-SUPPORT"
+                    "requester@example.com",
+                    "",
+                    "   ",
+                    "Details",
+                    "ICT",
+                    "TECH-SUPPORT",
                 )
             with self.assertRaises(frappe.ValidationError):
                 _validate_submission(
