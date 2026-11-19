@@ -1,7 +1,10 @@
 import frappe
 from frappe.tests import IntegrationTestCase
 
-from helpdesk.helpdesk.doctype.hd_ticket.hd_ticket import has_permission, permission_query
+from helpdesk.helpdesk.doctype.hd_ticket.hd_ticket import (
+    has_permission,
+    permission_query,
+)
 from helpdesk.anonymous_tickets import (
     _ticket_key,
     _token_digest,
