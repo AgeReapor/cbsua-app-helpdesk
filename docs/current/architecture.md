@@ -175,9 +175,9 @@ These hooks and native permission checks must remain intact. Do not bypass them 
 
 Consult the Studio-specific instructions in the actual framework checkout:
 
-- `studio/frontend/README.md` for Studio frontend dev server and `watch-studio`.
-- `studio/skills/studio-app-building/SKILL.md` for exported Studio App structure and sync behavior.
-- `RULES.md`, `ROUTING.md`, and `DESIGN.md` in that skill folder for runtime bindings, routes/global boot, and visual conventions.
+- `studio/frontend/README.md` in `cbsua-app-frappe` for Studio frontend dev server, exported apps, and `watch-studio`.
+- The Studio App building skill is currently available in upstream Frappe at `frappe/frappe/skills/studio-app-building/` (the checked CBSUA framework fork did not contain a copy at that path). Read `SKILL.md`, `RULES.md`, `ROUTING.md`, and `DESIGN.md` before editing Studio pages, bindings, navigation, or styling.
+- The skill can be installed from the upstream Frappe repository's `develop/skills/studio-app-building` path.
 
 The Helpdesk portal README documents using `/dev/help` during development, running the Studio watcher, and building the production bundle after development. Follow the exact instructions for the checked-out framework version.
 
