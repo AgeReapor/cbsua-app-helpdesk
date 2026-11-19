@@ -44,6 +44,15 @@
         {{ __('Verification unavailable') }}
       </h1>
       <p class="mt-2 text-ink-gray-6">{{ verificationError }}</p>
+      <Button
+        v-if="verificationToken"
+        class="mt-4"
+        size="md"
+        variant="outline"
+        :loading="verifying"
+        :label="__('Try again')"
+        @click="verify"
+      />
     </div>
 
     <form v-else class="flex flex-col gap-4" @submit.prevent="submit">
@@ -237,7 +246,6 @@ onMounted(async () => {
   if (token) {
     // Do not consume the token on page load; mail security scanners may prefetch links.
     verificationToken.value = token
-    void router.replace({ query: { ...route.query, verify: undefined } })
     return
   }
 
@@ -273,6 +281,7 @@ async function verify() {
     )
     ticketName.value = result.ticket
     verified.value = Boolean(result.success)
+    void router.replace({ query: { ...route.query, verify: undefined } })
     verificationToken.value = ''
   } catch {
     verificationError.value = __(
