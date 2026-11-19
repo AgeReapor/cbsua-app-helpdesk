@@ -49,14 +49,20 @@ def _validate_submission(
     office: str,
     request_type: str,
 ) -> dict:
+    values = (email, full_name, subject, description, office, request_type)
+    if not all(isinstance(value, str) for value in values):
+        frappe.throw(_("Invalid submission data."), frappe.ValidationError)
+
     email = email.strip().lower()
-    validate_email_address(email, throw=True)
     full_name = full_name.strip()
     subject = subject.strip()
     description = description.strip()
 
     if len(email) > 254:
-        frappe.throw(_("Email address is too long."))
+        frappe.throw(_("Email address is too long."), frappe.ValidationError)
+    validate_email_address(email, throw=True)
+    if any(ord(character) < 32 for character in subject):
+        frappe.throw(_("Subject contains unsupported control characters."), frappe.ValidationError)
     if len(full_name) > 140:
         frappe.throw(_("Name must be 140 characters or fewer."))
     if not subject or len(subject) > 140:
