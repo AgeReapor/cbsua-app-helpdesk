@@ -109,7 +109,7 @@ This roadmap is the working status tracker for the anonymous-ticket workstream. 
 
 | Phase | Scope | Exit condition | Status |
 |---|---|---|---|
-| 0. Repository and extension-point audit | Inspect portal routes/components, HD Ticket fields/controller, ticket creation, outbound notifications, inbound email, hooks, tests, and upstream extension points. Decide which changes belong in Helpdesk versus a CBSUA extension. | File-by-file implementation plan, confirmed data model, API boundaries, and test plan. | **Planned — first task** |
+| 0. Repository and extension-point audit | Inspect portal routes/components, HD Ticket fields/controller, ticket creation, outbound notifications, inbound email, hooks, tests, and upstream extension points. Decide which changes belong in Helpdesk versus a CBSUA extension. | File-by-file implementation plan, confirmed data model, API boundaries, and test plan. | **In progress — architecture/dependency audit documented; detailed lifecycle and extension-point trace remains** |
 | 1. Anonymous submission MVP | Add guest choice and form; validate email/name/request details; verify mailbox ownership; create a native ticket through server-side code. | Verified guest can create exactly one native ticket; unverified/invalid requests cannot; authenticated flow is unchanged. | **Planned** |
 | 2. Email communications | Confirmation, public agent replies, and configured requester-visible updates; evaluate inbound email replies. | Anonymous requester receives only permitted information; private communications remain private. | **Planned** |
 | 3. Security and operational readiness | Rate limiting, replay/idempotency protection, expiry/cleanup, duplicate handling, attachment policy, auditability, accessibility, monitoring, and regression tests. | Security and acceptance tests pass; deployment and support requirements are documented. | **Planned** |
@@ -118,7 +118,7 @@ This roadmap is the working status tracker for the anonymous-ticket workstream. 
 
 ## Phase 0 audit checklist
 
-Do not begin implementation until these repository-specific questions have been answered:
+Initial inspection has confirmed the framework/UI dependency roles, the Studio-based customer portal, the existing authenticated ticket form/API assumptions, and the current `frappe-ui` submodule URL discrepancy. See [Current Architecture and Repository Boundaries](architecture.md). The following checklist tracks the remaining verification; do not begin implementation until the required design decisions are resolved:
 
 - [ ] Locate the existing `/help` route and determine whether it is rendered by Vue/Frappe UI or website templates.
 - [ ] Identify the existing authenticated ticket-submission flow and reuse its validated fields and UX conventions.
