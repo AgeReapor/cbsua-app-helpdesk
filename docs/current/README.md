@@ -185,3 +185,11 @@ The first implementation slice is committed on `feat/anonymous-tickets`. It adds
 The backend creates native tickets only after email verification. It deliberately avoids Contact/HD Customer auto-association, does not accept attachments, and does not grant Guest DocType permissions. The existing Helpdesk acknowledgement is invoked after creation when enabled; public agent replies default to `raised_by`, and a guest-specific hook sends status-only emails on ticket status changes. Inbound email sender verification and all outbound templates still need a deeper audit.
 
 **Validation status:** source files and framework extension-hook implementation were inspected through GitHub. No disposable Frappe site, email account, frontend build, Semgrep run, or integration test runner was available in this session. Do not treat the feature as release-ready until those checks pass.
+
+## Implementation handoff update — 2026-11-19
+
+The anonymous verification path now keeps its site-scoped Redis lock until the Frappe database transaction commits or rolls back. Releasing the lock when the whitelisted method returned was too early because Frappe commits after the method response is prepared; concurrent requests could otherwise race an uncommitted ticket insert. The deterministic ticket key and the existing unique HD Ticket.key index remain the durable idempotency backstop.
+
+A focused test module was added at helpdesk/tests/test_anonymous_tickets.py for token digest/key behavior, input normalization, office/request-type consistency, and invalid/oversized content. These tests have **not** been run in this session because no Frappe bench/site runtime is connected. End-to-end tests for verification replay, expiry, concurrent requests, Contact collisions, notification privacy, and authenticated regressions remain required.
+
+The implementation also received a source-level correction to preserve actual newline characters in the escaped plain-text ticket description. No inbound email reply support is claimed. The current feature remains in progress and is not release-ready pending bench, email, Studio build, and Semgrep validation.
