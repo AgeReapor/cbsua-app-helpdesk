@@ -25,8 +25,17 @@
       </div>
       <FormControl v-model="form.full_name" type="text" :label="__('Name (optional)')" :placeholder="__('Your name')" />
       <FormControl v-model="form.email" type="email" required :label="__('Email address')" :placeholder="__('you@example.com')" />
-      <FormControl v-model="form.office" type="select" required :label="__('Office')" :options="officeOptions" :placeholder="__('Select an office')" />
-      <FormControl v-model="form.request_type" type="select" required :label="__('Type of request')" :options="requestTypeOptions" :placeholder="__('Select a request type')" />
+      <div class="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+        <div class="flex flex-col gap-1.5">
+          <label for="guest-office" class="text-sm font-medium text-ink-gray-7">{{ __('Office') }}</label>
+          <Combobox id="guest-office" v-model="form.office" trigger="button" size="sm" :options="officeOptions" :placeholder="__('Select an office')" :required="true" :disabled="loadingOptions || !officeOptions.length" :loading="loadingOptions" />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label for="guest-request-type" class="text-sm font-medium text-ink-gray-7">{{ __('Type of request') }}</label>
+          <Combobox id="guest-request-type" v-model="form.request_type" trigger="button" size="sm" :options="requestTypeOptions" :placeholder="__('Select a request type')" :required="true" :disabled="!form.office || loadingOptions || !requestTypeOptions.length" />
+        </div>
+      </div>
+      <p v-if="optionsError" role="alert" class="text-sm text-ink-red-6">{{ optionsError }}</p>
       <FormControl v-model="form.subject" type="text" required maxlength="140" :label="__('Subject')" :placeholder="__('A short description')" />
       <div class="flex flex-col gap-1.5">
         <label for="guest-description" class="text-sm font-medium text-ink-gray-7">{{ __('Description') }}</label>
@@ -43,12 +52,14 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Button, FormControl, call } from 'frappe-ui'
+import { Button, Combobox, FormControl, call } from 'frappe-ui'
 import { __ } from '@helpdesk/shared/translation'
 
 const route = useRoute()
 const form = reactive({ full_name: '', email: '', office: '', request_type: '', subject: '', description: '' })
 const offices = ref<any[]>([])
+const loadingOptions = ref(true)
+const optionsError = ref('')
 const requestTypes = ref<any[]>([])
 const submitting = ref(false)
 const verifying = ref(false)
@@ -75,9 +86,11 @@ onMounted(async () => {
     const result = await call('helpdesk.anonymous_tickets.get_guest_form_options')
     offices.value = result.offices || []
     requestTypes.value = result.request_types || []
+    loadingOptions.value = false
     form.office = offices.value.find(row => row.is_default)?.name || offices.value[0]?.name || ''
   } catch {
-    error.value = __('Could not load the request form. Please refresh the page or contact the helpdesk.')
+    loadingOptions.value = false
+    optionsError.value = __('Could not load office options. Please refresh the page or contact the helpdesk.')
   }
 })
 
