@@ -68,7 +68,7 @@ def _validate_submission(
         "full_name": full_name,
         "subject": subject,
         # The guest form accepts plain text only; escape it before storing HTML.
-        "description": description,
+        "description": description + (f"\n\nSubmitted by: {full_name}" if full_name else ""),
         "office": office,
         "request_type": request_type,
     }
@@ -168,7 +168,7 @@ def verify_guest_submission(token: str) -> dict:
             {
                 "doctype": "HD Ticket",
                 "subject": payload["subject"],
-                "description": html.escape(payload["description"]).replace("\\n", "<br>") + (f"<p>Submitted by: {html.escape(payload['full_name'])}</p>" if payload["full_name"] else ""),
+                "description": html.escape(payload["description"]).replace("\n", "<br>"),
                 "raised_by": payload["email"],
                 "via_customer_portal": 1,
                 "office": payload["office"],
