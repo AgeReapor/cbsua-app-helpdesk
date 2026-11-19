@@ -46,7 +46,19 @@ The native portal ticket lifecycle skips acknowledgement email. After verified c
 - Inbound email reply ownership validation has not been established. Do not advertise inbound email replies as a supported anonymous-ticket feature until the inbound sender identity path is audited and tested.
 - Realtime customer notifications resolve Frappe User records; they do not provide delivery to email-only requesters. Do not claim that every status transition emails an anonymous requester.
 
-## Current guest-entry status\n\nThe source changes now implement the revised flow:\n\n- `helpdesk/helpdesk/hooks/studio_app.py` sets `send_guest_to_login` false only for the exact `/help/guest/new` request path when the KB is private.\n- `studio/helpdesk/stores/session.ts` applies the same exact route exception to both its early boot redirect and its asynchronous session-load guard.\n- Helpdesk `loginUrl()` appends `helpdesk_guest=1` only when the current route belongs to `/help`.\n- The CBSUA Frappe fork's `frappe/www/login.py` validates the marker and a same-origin Helpdesk `Referer`; `frappe/www/login.html` renders a fixed `/help/guest/new` link beneath the login options. This framework change is isolated on `feat/anonymous-helpdesk-login-cta`.\n- `public_kb.json` no longer contains the top-level anonymous CTA. The empty-state authenticated ticket action group is gated by `canCreateTicket`, exposed from `useKnowledgeBaseHeader()`.\n\nThese are source-level changes only. The private/public KB browser matrix, Referer behavior, login variants, Studio production build, and Frappe tests have not yet been run. See [the agent handoff](../current/HANDOFF.md) for commits and remaining validation.\n\n## Remaining work before release
+## Current guest-entry status
+
+The source changes now implement the revised flow:
+
+- `helpdesk/helpdesk/hooks/studio_app.py` sets `send_guest_to_login` false only for the exact `/help/guest/new` request path when the KB is private.
+- `studio/helpdesk/stores/session.ts` applies the same exact route exception to both its early boot redirect and its asynchronous session-load guard.
+- Helpdesk `loginUrl()` appends `helpdesk_guest=1` only when the current route belongs to `/help`.
+- The CBSUA Frappe fork's `frappe/www/login.py` validates the marker and a same-origin Helpdesk `Referer`; `frappe/www/login.html` renders a fixed `/help/guest/new` link beneath the login options. This framework change is isolated on `feat/anonymous-helpdesk-login-cta`.
+- `public_kb.json` no longer contains the top-level anonymous CTA. The empty-state authenticated ticket action group is gated by `canCreateTicket`, exposed from `useKnowledgeBaseHeader()`.
+
+These are source-level changes only. The private/public KB browser matrix, Referer behavior, login variants, Studio production build, and Frappe tests have not yet been run. See [the agent handoff](../current/HANDOFF.md) for commits and remaining validation.
+
+## Remaining work before release
 
 1. Run `bench --site <site> run-tests --app helpdesk --module helpdesk.tests.test_anonymous_tickets` on a disposable Frappe v17-compatible bench and confirm the `extend_doctype_class` MRO on the deployed framework commit.
 2. Test the guest flow end-to-end with a real outbound email account: start, verify, duplicate verification, expiry, and acknowledgement delivery.
