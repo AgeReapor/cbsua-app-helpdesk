@@ -23,7 +23,7 @@ The guest endpoints live in `helpdesk/anonymous_tickets.py`:
 
 The endpoints are explicitly guest-whitelisted and method-restricted. Submission and verification have IP-based rate limits. The pending record expires after 30 minutes. The email token is generated with `secrets.token_urlsafe`; only its SHA-256 digest is used in the cache key. The token is single-use, and a cache lock plus a deterministic native ticket key makes verification retries idempotent.
 
-The public API does not accept arbitrary DocType dictionaries, ticket identifiers, contact/customer links, assignment, priority, status, internal visibility, or attachment references. Office and request type are revalidated at verification time.
+The public API does not accept arbitrary DocType dictionaries, ticket identifiers, contact/customer links, assignment, priority, status, internal visibility, or attachment references. The HD Ticket permission hook explicitly denies Guest reads, and its list query returns no rows for Guest, including tickets whose owner field is Guest. Office and request type are revalidated at verification time.
 
 ## Native ticket integration
 
