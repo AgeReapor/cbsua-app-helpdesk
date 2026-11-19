@@ -70,12 +70,14 @@ Guiding principles:
 
 ### Proposed experience
 
-- `/help`: retain the existing portal and offer authenticated and guest submission choices.
-- `/help/guest/new`: proposed guest submission form.
-- Submission confirmation: explain that updates will be sent to the supplied email address.
-- No anonymous ticket-list or ticket-detail endpoint is part of the initial scope.
+- `/help`: retains the public knowledge base and now links to the guest submission path.
+- `/help/guest/new`: published guest-accessible Studio page with a dedicated submission component.
+- Submission: collects an optional name, email, office, request type, subject and plain-text description; attachments are excluded.
+- Verification: sends a 30-minute single-use email link; ticket creation occurs only after successful verification.
+- Confirmation: displays the native ticket reference and explains that requester-facing agent replies are emailed.
+- No anonymous ticket-list or ticket-detail endpoint is added.
 
-Routes are proposals until checked against the actual frontend/router conventions in this repository.
+The route is registered in `shared/src/portalRoutes.ts` and exported as a standard Studio Page. Verify its published build on a migrated test site.
 
 ### Architectural direction
 
@@ -109,9 +111,9 @@ This roadmap is the working status tracker for the anonymous-ticket workstream. 
 
 | Phase | Scope | Exit condition | Status |
 |---|---|---|---|
-| 0. Repository and extension-point audit | Inspect portal routes/components, HD Ticket fields/controller, ticket creation, outbound notifications, inbound email, hooks, tests, and upstream extension points. Decide which changes belong in Helpdesk versus a CBSUA extension. | File-by-file implementation plan, confirmed data model, API boundaries, and test plan. | **In progress — architecture/dependency audit documented; detailed lifecycle and extension-point trace remains** |
-| 1. Anonymous submission MVP | Add guest choice and form; validate email/name/request details; verify mailbox ownership; create a native ticket through server-side code. | Verified guest can create exactly one native ticket; unverified/invalid requests cannot; authenticated flow is unchanged. | **Planned** |
-| 2. Email communications | Confirmation, public agent replies, and configured requester-visible updates; evaluate inbound email replies. | Anonymous requester receives only permitted information; private communications remain private. | **Planned** |
+| 0. Repository and extension-point audit | Inspect portal routes/components, HD Ticket fields/controller, ticket creation, outbound notifications, inbound email, hooks, tests, and upstream extension points. | Confirmed native ticket model, supported `extend_doctype_class` hook on the CBSUA Frappe v17 source, API boundary, and remaining email trust gaps. | **In progress — outbound/inbound email and deployment source-lock audits remain** |
+| 1. Anonymous submission MVP | Add guest choice and form; validate email/name/request details; verify mailbox ownership; create a native ticket through server-side code. | Verified guest can create exactly one native ticket; unverified/invalid requests cannot; authenticated flow is unchanged. | **In progress — backend, Studio page, and initial tests committed; bench validation pending** |
+| 2. Email communications | Verification and acknowledgement email; public agent replies use native `raised_by` recipient; evaluate requester-visible status updates and inbound email replies. | Real outbound delivery and template privacy are tested; inbound sender identity policy is explicit. | **In progress — verification and acknowledgement implemented; agent reply path traced; inbound trust remains unverified** |
 | 3. Security and operational readiness | Rate limiting, replay/idempotency protection, expiry/cleanup, duplicate handling, attachment policy, auditability, accessibility, monitoring, and regression tests. | Security and acceptance tests pass; deployment and support requirements are documented. | **Planned** |
 | 4. Account association | Match eligible verified anonymous requester identities to newly registered accounts after ownership verification. | Explicit migration rules, audit trail, history preservation, and tests are accepted. | **Deferred — future enhancement** |
 | 5. Upstream integration and documentation reconciliation | Review the completed feature against upstream extension points; propose or port generic changes upstream where appropriate; reconcile documentation. | Upstream integration path is agreed; durable docs live in the correct upstream/CBSUA locations; this handoff folder is retired or reduced to a historical pointer. | **Deferred — after feature completion** |
@@ -126,11 +128,12 @@ Initial inspection has confirmed the framework/UI dependency roles, the Studio-b
 - [x] Trace requester email, Contact/customer association, and ticket permission behavior at controller level; end-to-end account/email identity behavior still requires tests.
 - [ ] Complete outbound email audit: acknowledgement is skipped for portal-origin tickets; agent replies can email `raised_by`; realtime customer notifications resolve Frappe Users and do not notify email-only requesters. Verify every template and event.
 - [ ] Complete inbound email trust audit: Message-ID/References thread stitching exists, but sender-address ownership validation has not been established.
-- [ ] Confirm a supported `HD Ticket` extension mechanism for skipping authenticated Contact/customer auto-association only on verified anonymous submissions.
-- [ ] Decide verification persistence and idempotency model, including safe storage/expiry of the pending submission payload.
-- [ ] Define the guest API contract, allowed fields, response shape, POST/method requirements, IP/email-based rate limiting, and idempotency behavior.
-- [ ] Define tests for guest isolation, invalid input, token expiry/replay, concurrent verification, notification privacy, and authenticated regression.
-- [ ] Record the confirmed implementation file paths and ownership boundary in this folder.
+- [x] Confirm the supported Frappe v17 `extend_doctype_class` mechanism and register a narrow HD Ticket mixin.
+- [x] Define the guest API contract, allowlisted fields, POST methods, IP-based rate limits, expiring cache payload, and idempotent verification key.
+- [x] Add a guest Studio page, route, and public home-page entry point without changing the authenticated new-ticket page.
+- [ ] Test token expiry/replay, concurrent verification, Contact collision isolation, notification privacy, and authenticated regression on a disposable site.
+- [ ] Complete outbound/inbound email and deployment source-lock audits.
+- [x] Record implementation files and ownership boundary in [the anonymous-ticket feature guide](../features/anonymous-ticket-submission.md).
 
 ## Acceptance criteria
 
@@ -173,3 +176,12 @@ Do not use this document as a substitute for commit history, PR review, or test 
 - [CBSUA Helpdesk deployment](https://github.com/AgeReapor/cbsua-app-helpdesk-deployment)
 
 For Frappe work, consult the applicable installed/repository skills before implementation, especially app development, code review, API development, web forms, and enterprise patterns. Verify skill instructions against the actual target Frappe/Helpdesk versions and repository conventions.
+
+
+## Implementation handoff — 2026-11-19
+
+The first implementation slice is committed on `feat/anonymous-tickets`. It adds `helpdesk/anonymous_tickets.py`, `helpdesk/extends/anonymous_ticket.py`, the `extend_doctype_class` hook, a guest-only Studio page/component, the `/guest/new` route, a public-home entry point, initial backend tests, and the feature guide. The authenticated `api.new` endpoint and existing authenticated Studio page remain unchanged.
+
+The backend creates native tickets only after email verification. It deliberately avoids Contact/HD Customer auto-association, does not accept attachments, and does not grant Guest DocType permissions. The existing Helpdesk acknowledgement is invoked after creation; public agent replies already default to `raised_by`. Inbound email sender verification and all outbound templates still need a deeper audit.
+
+**Validation status:** source files and framework extension-hook implementation were inspected through GitHub. No disposable Frappe site, email account, frontend build, Semgrep run, or integration test runner was available in this session. Do not treat the feature as release-ready until those checks pass.
