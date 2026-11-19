@@ -66,7 +66,7 @@ Guiding principles:
 
 **Branch:** `feat/anonymous-tickets`
 
-**Goal:** Add an optional login-less ticket submission path to the existing guest-facing `/help` portal. A visitor can choose the existing authenticated path or submit a request without creating an account. The anonymous path collects an email address and an optional name; subsequent requester-facing updates are delivered by email. Anonymous users do not receive a `/help/my-tickets` listing or general ticket-browsing capability.
+**Goal:** Add an optional login-less ticket submission path to the existing guest-facing `/help` portal. A visitor can choose the existing authenticated path or submit a request without creating an account. The anonymous path collects an email address and an optional name; agent replies and selected status-change notices are delivered by email. It does not provide anonymous portal ticket browsing. Anonymous users do not receive a `/help/my-tickets` listing or general ticket-browsing capability.
 
 ### Proposed experience
 
