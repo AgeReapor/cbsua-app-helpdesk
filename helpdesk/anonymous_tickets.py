@@ -119,6 +119,14 @@ def start_guest_submission(
     )
 
     verify_url = f"{get_url()}{CUSTOMER_PORTAL_ROOT}/guest/new?verify={token}"
+    verification_intro = _(
+        "Someone submitted a helpdesk request using this email address. "
+        "Confirm the address to create the ticket."
+    )
+    expiration_note = _(
+        "This link expires in 30 minutes. If you did not make this request, "
+        "you can ignore this email."
+    )
     greeting = (
         _("Hello {0},").format(html.escape(payload["full_name"]))
         if payload["full_name"]
@@ -129,10 +137,10 @@ def start_guest_submission(
         subject=_("Verify your CBSUA Helpdesk request"),
         message=(
             f"<p>{greeting}</p>"
-            f"<p>{_('Someone submitted a helpdesk request using this email address. Confirm the address to create the ticket.')}</p>"
+            f"<p>{verification_intro}</p>"
             f'<p><a href="{html.escape(verify_url, quote=True)}">'
             f"{_('Verify email and submit request')}</a></p>"
-            f"<p>{_('This link expires in 30 minutes. If you did not make this request, you can ignore this email.')}</p>"
+            f"<p>{expiration_note}</p>"
         ),
     )
     return {
