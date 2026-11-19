@@ -143,7 +143,7 @@ def verify_guest_submission(token: str) -> dict:
         return {"success": True, "ticket": existing}
 
     cache_key = _cache_key(digest)
-    with frappe.cache.lock(f"{cache_key}:verify-lock", timeout=30, blocking_timeout=5):
+    with frappe.cache.lock(f"{cache_key}:verify-lock", timeout=300, blocking_timeout=15):
         # A concurrent request may have completed while this request waited.
         existing = frappe.db.get_value("HD Ticket", {"key": key}, "name")
         if existing:
