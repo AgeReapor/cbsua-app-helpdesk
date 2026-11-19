@@ -72,10 +72,10 @@ Guiding principles:
 
 The initial idea of placing an anonymous-submission button at the top of the public knowledge-base page is superseded. Pilot testing showed that Guests can be redirected to login before the Studio page is reached when the knowledge base is private, and that the homepage action layout exposes authenticated actions in the wrong session state.
 
-The intended flow is:
+The implemented source-level flow is (runtime verification still pending):
 
 1. A Guest who opens `/help` while the knowledge base is private is sent to the Frappe login page, as required by the existing private-KB policy.
-2. When that login was initiated from the Helpdesk portal, the login page presents a secondary `Submit a request without signing in` link beneath the existing `Continue` and `Login with Email Link` options.
+2. Helpdesk adds `helpdesk_guest=1` only to its login redirect. The Frappe login context additionally requires a same-origin `Referer` from `/help` or a `/help/...` route before showing the secondary `Submit a request without signing in` link beneath the login options.
 3. The link navigates directly to `/help/guest/new`. It must not require a logged-in session.
 4. The guest page uses the existing verified-email submission flow described below.
 5. When the knowledge base is public, Guests may browse it, but they must not see authenticated-only `Raise a ticket` or `View my tickets` actions. The anonymous entry link should not be duplicated as a prominent top-of-homepage button.
@@ -83,7 +83,7 @@ The intended flow is:
 
 The login CTA must be conditional on a Helpdesk-origin login context. The Frappe login page is shared platform UI; adding an unconditional CBSUA Helpdesk link would leak this product-specific action into unrelated login flows.
 
-The guest route is registered in `shared/src/portalRoutes.ts` and the Studio page is configured with `allow_guest: 1`. Those settings alone do not override the global private-knowledge-base redirect. The redirect exception must be narrow and exact for `/help/guest/new`; it must not make the rest of the private portal public.
+The guest route is registered in `shared/src/portalRoutes.ts` and the Studio page is configured with `allow_guest: 1`. Both redirect guards now exempt only `/help/guest/new` (allowing a trailing slash); all other private-KB Guest routes remain subject to login. This is source-implemented but not yet browser-validated.
 
 ### Guest submission behavior
 
@@ -93,7 +93,7 @@ The guest route is registered in `shared/src/portalRoutes.ts` and the Studio pag
 - Confirmation: displays the native ticket reference and explains that requester-facing agent replies are emailed.
 - No anonymous ticket-list, ticket-detail, update, or lookup endpoint is added.
 
-The backend feature is implemented in this branch, but the revised entry/navigation experience below is a follow-up task and has not yet been implemented or validated.
+The backend feature and revised entry/navigation source changes are implemented in this branch. The KB homepage top CTA has been removed, and its empty-state ticket actions are gated by `canCreateTicket`. The behavior is not yet runtime-validated.
 
 ### Architectural direction
 
@@ -128,7 +128,7 @@ This roadmap is the working status tracker for the anonymous-ticket workstream. 
 | Phase | Scope | Exit condition | Status |
 |---|---|---|---|
 | 0. Repository and extension-point audit | Inspect portal routes/components, HD Ticket fields/controller, ticket creation, outbound notifications, inbound email, hooks, tests, and upstream extension points. | Confirmed native ticket model, supported `extend_doctype_class` hook on the CBSUA Frappe v17 source, API boundary, and remaining email trust gaps. | **In progress — outbound/inbound email and deployment source-lock audits remain** |
-| 1. Anonymous submission MVP | Guest entry/navigation, form, email verification, and native ticket creation. | Guest can reach the form from the login screen even with a private KB; one verified submission creates one native ticket; authenticated flow is unchanged. | **In progress — backend and guest Studio page are committed; login entry point/private-KB redirect exception and bench validation remain** |
+| 1. Anonymous submission MVP | Guest entry/navigation, form, email verification, and native ticket creation. | Guest can reach the form from the login screen even with a private KB; one verified submission creates one native ticket; authenticated flow is unchanged. | **In progress — backend, guest page, route exceptions, login CTA, and KB action cleanup are implemented in source; runtime validation remains** |
 | 2. Email communications | Verification and acknowledgement email; public agent replies use native `raised_by` recipient; evaluate requester-visible status updates and inbound email replies. | Real outbound delivery and template privacy are tested; inbound sender identity policy is explicit. | **In progress — verification, acknowledgement, agent-reply delivery, and status-change notices implemented; inbound trust remains unverified** |
 | 3. Security and operational readiness | Rate limiting, replay/idempotency protection, expiry/cleanup, duplicate handling, attachment policy, auditability, accessibility, monitoring, and regression tests. | Security and acceptance tests pass; deployment and support requirements are documented. | **In progress — IP rate limits, expiring tokens, idempotent verification, no-attachment policy, and Guest read isolation implemented; bench/security validation pending** |
 | 4. Account association | Match eligible verified anonymous requester identities to newly registered accounts after ownership verification. | Explicit migration rules, audit trail, history preservation, and tests are accepted. | **Deferred — future enhancement** |
@@ -147,8 +147,8 @@ Initial inspection has confirmed the framework/UI dependency roles, the Studio-b
 - [x] Confirm the supported Frappe v17 `extend_doctype_class` mechanism and register a narrow HD Ticket mixin.
 - [x] Define the guest API contract, allowlisted fields, POST methods, IP-based rate limits, expiring cache payload, and idempotent verification key.
 - [x] Add a guest Studio page and route without changing the authenticated new-ticket page.
-- [ ] Implement the revised Helpdesk-origin login CTA and exact private-KB route exception (see [Agent Handoff](HANDOFF.md)).
-- [ ] Remove the obsolete top-of-homepage guest CTA and hide authenticated-only empty-state actions from Guests.
+- [x] Implement the Helpdesk-origin login CTA and exact private-KB route exception in Helpdesk and Frappe source (see [Agent Handoff](HANDOFF.md)); browser validation remains outstanding.
+- [x] Remove the obsolete top-of-homepage guest CTA and hide authenticated-only empty-state actions from Guests; browser validation remains outstanding.
 - [ ] Test token expiry/replay, concurrent verification, Contact collision isolation, notification privacy, and authenticated regression on a disposable site.
 - [ ] Complete outbound/inbound email and deployment source-lock audits.
 - [x] Record implementation files and ownership boundary in [the anonymous-ticket feature guide](../features/anonymous-ticket-submission.md).
