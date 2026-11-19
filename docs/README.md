@@ -2,7 +2,7 @@
 
 ## Current project handoff
 
-Start with [Current Project Context](current/README.md) before implementation or handoff. This living entry point consolidates the active project direction, anonymous-ticket workstream, implementation roadmap, acceptance criteria, and contributor handoff process. Update it as decisions and implementation status change. It also documents the intended documentation lifecycle: reconcile durable documentation with upstream Frappe Helpdesk after the feature/submodule is complete and the integration boundary is agreed.
+Start with [Current Project Context](current/README.md) before implementation or handoff. For the dependency graph, framework/UI-library boundaries, and Studio customer portal architecture, also read [Current Architecture and Repository Boundaries](current/architecture.md). This living entry point consolidates the active project direction, anonymous-ticket workstream, implementation roadmap, acceptance criteria, and contributor handoff process. Update it as decisions and implementation status change. It also documents the intended documentation lifecycle: reconcile durable documentation with upstream Frappe Helpdesk after the feature/submodule is complete and the integration boundary is agreed.
 
 ## Office routing administration
 
