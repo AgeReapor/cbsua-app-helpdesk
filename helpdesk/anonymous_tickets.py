@@ -147,8 +147,8 @@ def verify_guest_submission(token: str) -> dict:
         return {"success": True, "ticket": existing}
 
     cache_key = _cache_key(digest)
-    with frappe.cache.lock(f"{frappe.local.site}:{cache_key}:verify-lock", timeout=300, blocking_timeout=15):
-        # A concurrent request may have completed while this request waited.
+    lock_name = f"{frappe.local.site}:{cache_key}:verify-lock"
+    with frappe.cache.lock(lock_name, timeout=300, blocking_timeout=15):
         existing = frappe.db.get_value("HD Ticket", {"key": key}, "name")
         if existing:
             return {"success": True, "ticket": existing}
@@ -167,11 +167,16 @@ def verify_guest_submission(token: str) -> dict:
             payload["request_type"],
         )
 
+        description = payload["description"]
+        if payload["full_name"]:
+            description += "\n\nSubmitted by: " + payload["full_name"]
+        description_html = html.escape(description).replace("\n", "<br>")
+
         ticket = frappe.get_doc(
             {
                 "doctype": "HD Ticket",
                 "subject": payload["subject"],
-                "description": html.escape(payload["description"] + ("\n\nSubmitted by: " + payload["full_name"] if payload["full_name"] else "")).replace("\n", "<br>"),
+                "description": description_html,
                 "raised_by": payload["email"],
                 "via_customer_portal": 1,
                 "office": payload["office"],
