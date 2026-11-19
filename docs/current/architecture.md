@@ -343,9 +343,9 @@ The server inserts the native ticket through the existing controller with a narr
 ### Current limitations and validation gates
 
 - Attachments are excluded until a separate guest upload ownership/expiry design exists.
-- Agent replies can use the native email path to `raised_by`; test delivery with the configured outgoing account.
+- Agent replies use the native email path to `raised_by`; a guest-specific `HD Ticket.on_update` hook also emails a minimal status-only notice when the status changes, unless the Helpdesk email workflow is disabled. Test both paths with the configured outgoing account.
 - The native portal acknowledgement is skipped for portal-origin tickets, so the guest service explicitly invokes the existing acknowledgement method.
-- Realtime customer notifications resolve enabled Frappe Users; they do not deliver to email-only requesters. Do not promise email for every status transition.
+- Realtime customer notifications resolve enabled Frappe Users; they do not deliver to email-only requesters. The guest-specific status email hook covers status changes only, not every field change or internal comment.
 - Inbound email Message-ID/References threading exists, but sender-address ownership validation has not been confirmed. Anonymous inbound replies remain unsupported until audited and tested.
 - Initial tests cover token digest/idempotency key helpers, invalid tokens, invalid email, and missing offices. Run the test module on a disposable Frappe v17-compatible site and add end-to-end verification, replay, expiry, Contact-collision, email privacy, and authenticated-regression tests.
 - The current environment did not run a Frappe bench, Studio build, Semgrep, or real email delivery. Source inspection alone is not release validation.
