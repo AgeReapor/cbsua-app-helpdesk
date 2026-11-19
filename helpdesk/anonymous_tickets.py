@@ -226,8 +226,8 @@ def verify_guest_submission(token: str) -> dict:
     # This is a narrow server-side insert. Guest receives no DocType permission.
     ticket.insert(ignore_permissions=True)
 
-    # The native portal lifecycle skips its acknowledgement email. Send the
-    # existing Helpdesk acknowledgement explicitly after verified creation.
+    # The native portal lifecycle skips its acknowledgement email. Send a
+    # guest-safe acknowledgement without an authenticated portal link.
     if (
         not frappe.flags.initial_sync
         and frappe.db.get_single_value("HD Settings", "send_acknowledgement_email")
