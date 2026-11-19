@@ -56,7 +56,9 @@ def _validate_submission(
     if not subject or len(subject) > 140:
         frappe.throw(_("Subject is required and must be 140 characters or fewer."))
     if not description or len(description) > MAX_DESCRIPTION_LENGTH:
-        frappe.throw(_("Description is required and must be 10,000 characters or fewer."))
+        frappe.throw(
+            _("Description is required and must be 10,000 characters or fewer.")
+        )
     if not frappe.db.exists("CB Office", {"name": office, "enabled": 1}):
         frappe.throw(_("Select an available office."))
     if not frappe.db.exists(
@@ -117,7 +119,11 @@ def start_guest_submission(
     )
 
     verify_url = f"{get_url()}{CUSTOMER_PORTAL_ROOT}/guest/new?verify={token}"
-    greeting = f"Hello {html.escape(payload['full_name'])}," if payload["full_name"] else "Hello,"
+    greeting = (
+        f"Hello {html.escape(payload['full_name'])},"
+        if payload["full_name"]
+        else "Hello,"
+    )
     frappe.sendmail(
         recipients=[payload["email"]],
         subject=_("Verify your CBSUA Helpdesk request"),
@@ -125,12 +131,15 @@ def start_guest_submission(
             f"<p>{greeting}</p>"
             "<p>Someone submitted a helpdesk request using this email address. "
             "Confirm the address to create the ticket.</p>"
-            f'<p><a href="{html.escape(verify_url, quote=True)}">Verify email and submit request</a></p>'
+            f'<p><a href="{html.escape(verify_url, quote=True)}">'
+            "Verify email and submit request</a></p>"
             f"<p>This link expires in 30 minutes. If you did not make this request, "
             "you can ignore this email.</p>"
         ),
     )
-    return {"message": _("If the request is valid, a verification email has been sent.")}
+    return {
+        "message": _("If the request is valid, a verification email has been sent.")
+    }
 
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
@@ -193,7 +202,7 @@ def verify_guest_submission(token: str) -> dict:
             and frappe.db.get_single_value("HD Settings", "send_acknowledgement_email")
         ):
             ticket.send_acknowledgement_email()
-        # Keep the pending payload retryable if the surrounding DB transaction rolls back.
+        # Keep the pending payload retryable if the DB transaction rolls back.
         frappe.db.after_commit.add(lambda: frappe.cache.delete_value(cache_key))
         return {"success": True, "ticket": ticket.name}
 
