@@ -216,12 +216,20 @@ def notify_anonymous_requester_status(doc, method=None) -> None:
         f"<p><strong>{_('Subject')}:</strong> {html.escape(doc.subject or '')}</p>"
         f"<p><strong>{_('Status')}:</strong> {html.escape(status_label or '')}</p>"
     )
-    frappe.sendmail(
-        recipients=[doc.raised_by],
-        subject=_("Ticket #{0}: status update").format(doc.name),
-        message=message,
-        reference_doctype="HD Ticket",
-        reference_name=doc.name,
-        in_reply_to=doc._last_threadable_communication(),
-        email_headers={"X-Auto-Generated": "hd-anonymous-status-update"},
-    )
+    try:
+        if not doc.sender_email():
+            return
+        frappe.sendmail(
+            recipients=[doc.raised_by],
+            subject=_("Ticket #{0}: status update").format(doc.name),
+            message=message,
+            reference_doctype="HD Ticket",
+            reference_name=doc.name,
+            in_reply_to=doc._last_threadable_communication(),
+            email_headers={"X-Auto-Generated": "hd-anonymous-status-update"},
+        )
+    except Exception:
+        frappe.log_error(
+            title="Anonymous ticket status email failed",
+            message=f"Could not queue a status email for HD Ticket {doc.name}.",
+        )
