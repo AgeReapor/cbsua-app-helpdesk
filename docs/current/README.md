@@ -1,0 +1,163 @@
+# Current Project Context
+
+> **Purpose:** This folder is the maintained handoff and integration context for the active CBSUA Helpdesk project. Read this document before starting implementation or making architectural changes.
+
+## Why `docs/current/` exists
+
+This project is being developed by multiple contributors and may be handed between developers, maintainers, and agentic coding systems. Important decisions have previously been distributed across chat conversations, README files, issue discussions, implementation notes, and Mermaid diagrams. That information is useful only when the next contributor can find it, understand which decisions remain current, and distinguish implemented behavior from proposed work.
+
+The `current/` folder consolidates that working context into a predictable entry point. Its purpose is to reduce onboarding time, prevent repeated rediscovery, preserve architectural reasoning, and make integration work safer. It is intentionally a **living project handoff area**, not a replacement for durable feature, architecture, API, operations, or user documentation.
+
+The root `docs/README.md` should link here prominently. Contributors should update the relevant current-context documents and roadmap as implementation decisions change. Record why a decision was made, not only what was chosen.
+
+## Documentation lifecycle and eventual upstream integration
+
+This repository currently carries CBSUA-specific Helpdesk work while the project moves toward an extension-oriented relationship with upstream Frappe Helpdesk.
+
+The immediate priority is to complete and validate the anonymous-ticket capability as a coherent feature in this repository. During that work, keep a clear record of:
+
+- which behavior is generic Helpdesk functionality;
+- which behavior is CBSUA-specific policy or integration;
+- which changes are unavoidable integration points in upstream-owned code;
+- which changes can live in a separate CBSUA extension app;
+- tests, migrations, compatibility constraints, and deployment requirements.
+
+Once the feature/submodule is complete and the extension boundary is understood, the project can evaluate merging or porting the application changes into the original upstream Helpdesk repository (subject to maintainer review and upstream acceptance). At that integration milestone, the relevant durable documentation should be reconciled with and moved into the original project's documentation structure. The temporary handoff context should not be copied blindly: resolve duplicates, preserve useful architectural history, and retain CBSUA-specific deployment or policy documentation in the appropriate CBSUA repository.
+
+This is a planned documentation and integration lifecycle, **not a claim that upstream has accepted or merged any changes**. Until that milestone is reached, this folder remains the handoff source for the current work in this repository.
+
+## How contributors should use this folder
+
+1. Start here before editing code.
+2. Read the implementation roadmap and the relevant architecture/feature notes before choosing an implementation.
+3. Check the repository's actual code and tests; documentation is context, not proof that a feature exists.
+4. Keep status explicit: **implemented**, **in progress**, **planned**, **deferred**, or **blocked**.
+5. Update the roadmap when scope, dependencies, decisions, or acceptance criteria change.
+6. When a decision changes, update the relevant document and explain the reason; do not leave contradictory guidance in multiple files.
+7. Link to durable documents elsewhere in `docs/` rather than duplicating their full contents here.
+8. Before handing work off, record the current branch, commit/PR state, changed areas, validation performed, known gaps, and the next actionable task.
+
+## Current project direction
+
+The current architectural direction is to reduce long-term divergence from upstream Frappe Helpdesk and favor extension/configuration over maintaining a branded fork.
+
+Guiding principles:
+
+- Preserve native Helpdesk ticket lifecycle, agent workspace, portal behavior, assignment, SLA, and communication features wherever practical.
+- Prefer upstream extension points and documented APIs over copying whole upstream components, monkey-patching, or maintaining parallel implementations.
+- Keep institutional branding, boot data, defaults, office routing, and CBSUA-specific policy explicit and isolated where feasible.
+- Do not move code into a separate extension merely for theoretical purity; first verify that the required extension points exist and that the result remains maintainable.
+- Treat permissions, requester identity, and internal-versus-public communications as security boundaries.
+- Keep deployment and release orchestration in the deployment repository.
+
+## Active workstream: anonymous ticket submission
+
+**Branch:** `feat/anonymous-tickets`
+
+**Goal:** Add an optional login-less ticket submission path to the existing guest-facing `/help` portal. A visitor can choose the existing authenticated path or submit a request without creating an account. The anonymous path collects an email address and an optional name; subsequent requester-facing updates are delivered by email. Anonymous users do not receive a `/help/my-tickets` listing or general ticket-browsing capability.
+
+### Proposed experience
+
+- `/help`: retain the existing portal and offer authenticated and guest submission choices.
+- `/help/guest/new`: proposed guest submission form.
+- Submission confirmation: explain that updates will be sent to the supplied email address.
+- No anonymous ticket-list or ticket-detail endpoint is part of the initial scope.
+
+Routes are proposals until checked against the actual frontend/router conventions in this repository.
+
+### Architectural direction
+
+Prefer creating a native Helpdesk ticket through a narrowly scoped server-side service rather than introducing a parallel guest-ticket DocType or creating disposable Frappe User accounts.
+
+Before adding fields or DocTypes, inspect the actual Helpdesk requester model and lifecycle. Reuse existing fields and native notification/communication paths where safe. Keep any custom requester metadata minimal and justified by a concrete gap.
+
+Email verification before ticket creation is the recommended safeguard because an email address alone does not prove control of that mailbox. Verification should use a cryptographically random, single-use, expiring token; store only a protected representation; bind it to the intended email and submission; and make successful ticket creation idempotent against replay or concurrent requests.
+
+Guest endpoints must accept only explicitly allowed fields, validate input server-side, set privileged fields on the server, and never grant broad Guest Create or Read permissions on Helpdesk tickets. No public endpoint should reveal ticket details, internal comments, private attachments, agent-only data, or ticket existence.
+
+Native email notifications should expose only requester-visible information. Inbound email replies may be considered only after the existing Helpdesk inbound-mail association and trust model has been inspected.
+
+### Institutional rationale
+
+Anonymous submission is an accessibility path for campus service reporting. Students, employees, faculty, and campus visitors may need to report a service issue even when they cannot authenticate or do not have an account. Requiring login for every request can prevent reporting, especially when the reported problem is itself an account or access issue.
+
+The campus-network deployment context helps define the intended service audience, but it is not a substitute for security controls. A campus network can contain compromised or shared devices and can be exposed through misconfiguration. The feature still requires abuse controls, rate limits, input validation, attachment restrictions, privacy safeguards, and monitoring.
+
+Suggested policy statement:
+
+> Anonymous ticket submission is an accessibility feature of the CBSUA campus service-desk system. It allows members of the university community and campus visitors to report service disruptions without requiring an existing Helpdesk account. Requester email ownership is verified, while ticket management and internal processing remain governed by the existing Helpdesk authorization model.
+
+### Future account association
+
+A later enhancement may associate eligible anonymous tickets with a newly registered account when the account owner proves control of the same verified email address. This is not part of the initial submission MVP. Email equality alone must not trigger an unsafe ownership transfer. Preserve original requester metadata and communication history, define eligibility rules, and record the association for audit purposes.
+
+## Implementation roadmap
+
+This roadmap is the working status tracker for the anonymous-ticket workstream. Update it as work is completed; do not mark a phase complete based only on code existing.
+
+| Phase | Scope | Exit condition | Status |
+|---|---|---|---|
+| 0. Repository and extension-point audit | Inspect portal routes/components, HD Ticket fields/controller, ticket creation, outbound notifications, inbound email, hooks, tests, and upstream extension points. Decide which changes belong in Helpdesk versus a CBSUA extension. | File-by-file implementation plan, confirmed data model, API boundaries, and test plan. | **Planned — first task** |
+| 1. Anonymous submission MVP | Add guest choice and form; validate email/name/request details; verify mailbox ownership; create a native ticket through server-side code. | Verified guest can create exactly one native ticket; unverified/invalid requests cannot; authenticated flow is unchanged. | **Planned** |
+| 2. Email communications | Confirmation, public agent replies, and configured requester-visible updates; evaluate inbound email replies. | Anonymous requester receives only permitted information; private communications remain private. | **Planned** |
+| 3. Security and operational readiness | Rate limiting, replay/idempotency protection, expiry/cleanup, duplicate handling, attachment policy, auditability, accessibility, monitoring, and regression tests. | Security and acceptance tests pass; deployment and support requirements are documented. | **Planned** |
+| 4. Account association | Match eligible verified anonymous requester identities to newly registered accounts after ownership verification. | Explicit migration rules, audit trail, history preservation, and tests are accepted. | **Deferred — future enhancement** |
+| 5. Upstream integration and documentation reconciliation | Review the completed feature against upstream extension points; propose or port generic changes upstream where appropriate; reconcile documentation. | Upstream integration path is agreed; durable docs live in the correct upstream/CBSUA locations; this handoff folder is retired or reduced to a historical pointer. | **Deferred — after feature completion** |
+
+## Phase 0 audit checklist
+
+Do not begin implementation until these repository-specific questions have been answered:
+
+- [ ] Locate the existing `/help` route and determine whether it is rendered by Vue/Frappe UI or website templates.
+- [ ] Identify the existing authenticated ticket-submission flow and reuse its validated fields and UX conventions.
+- [ ] Inspect the `HD Ticket` DocType schema, controller validations, requester fields, and creation lifecycle.
+- [ ] Trace how Helpdesk associates tickets with users and email addresses.
+- [ ] Trace outbound email templates, notifications, public replies, private comments, and attachment handling.
+- [ ] Trace inbound email processing and whether replies can be safely associated with anonymous tickets.
+- [ ] Identify existing hooks and supported extension points; avoid monkey-patching and wholesale component copies.
+- [ ] Decide whether verification state needs a dedicated DocType or can be handled by an existing suitable mechanism.
+- [ ] Define the guest API contract, allowed fields, response shape, CSRF/method requirements, rate limiting, and idempotency behavior.
+- [ ] Define tests for guest isolation, invalid input, token expiry/replay, concurrent verification, notification privacy, and authenticated regression.
+- [ ] Record the confirmed implementation file paths and ownership boundary in this folder.
+
+## Acceptance criteria
+
+The feature is ready for integration review only when:
+
+- A logged-out visitor can reach the guest submission path from `/help`.
+- Email is required and name remains optional.
+- Email ownership is verified before ticket creation.
+- A successful verification creates one native Helpdesk ticket, not a parallel record or temporary user.
+- Guest users cannot list, read, modify, or infer other tickets through public endpoints.
+- Client-supplied privileged fields cannot control assignment, team, priority, status, or internal visibility.
+- Requester emails contain only requester-visible content.
+- Existing authenticated submission and `/help/my-tickets` behavior remain intact.
+- Rate limiting, replay protection, cleanup, error handling, and operational behavior are tested.
+- Documentation and deployment implications are reviewed.
+
+## Handoff note template
+
+At each meaningful handoff, append or update a concise status note with:
+
+- **Date / contributor:**
+- **Branch and latest commit:**
+- **Current phase:**
+- **Completed:**
+- **Files/modules changed:**
+- **Tests and checks run (exact commands and results):**
+- **Known issues / risks:**
+- **Decisions made or changed (with rationale):**
+- **Next concrete task:**
+- **Upstream integration implications:**
+
+Do not use this document as a substitute for commit history, PR review, or test evidence. It is the navigational context that helps the next contributor find and interpret those artifacts.
+
+## Related repositories and references
+
+- [CBSUA Helpdesk repository](https://github.com/AgeReapor/cbsua-app-helpdesk)
+- [Frappe Helpdesk upstream](https://github.com/frappe/helpdesk)
+- [Frappe official skills](https://github.com/frappe/skills)
+- [LUBUS Frappe skills](https://github.com/lubusIN/frappe-skills)
+- [CBSUA Helpdesk deployment](https://github.com/AgeReapor/cbsua-app-helpdesk-deployment)
+
+For Frappe work, consult the applicable installed/repository skills before implementation, especially app development, code review, API development, web forms, and enterprise patterns. Verify skill instructions against the actual target Frappe/Helpdesk versions and repository conventions.
