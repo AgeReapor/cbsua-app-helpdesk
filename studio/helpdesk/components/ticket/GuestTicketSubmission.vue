@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Button, FormControl, call } from 'frappe-ui'
 import { __ } from '@helpdesk/shared/translation'
@@ -51,6 +51,8 @@ const error = ref('')
 const officeOptions = computed(() => offices.value.map(row => ({ label: row.office_name, value: row.name })))
 const requestTypeOptions = computed(() => requestTypes.value.filter(row => row.office === form.office).map(row => ({ label: row.request_type_name, value: row.name })))
 const canSubmit = computed(() => Boolean(form.email.trim() && form.office && form.request_type && form.subject.trim() && form.description.trim()))
+
+watch(() => form.office, () => { form.request_type = '' })
 
 onMounted(async () => {
   const token = typeof route.query.verify === 'string' ? route.query.verify : ''
