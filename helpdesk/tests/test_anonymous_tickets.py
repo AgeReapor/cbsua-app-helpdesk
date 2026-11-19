@@ -51,6 +51,41 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         self.assertFalse(has_permission(ticket, "Guest"))
         self.assertFalse(has_permission(ticket, email))
         self.assertEqual(permission_query("Guest"), "1=0")
+        self.assertIn("owner != 'Guest'", permission_query(email))
+
+    def test_anonymous_insert_rules_preserve_verified_email_and_guest_owner(self):
+        ticket = frappe.new_doc("HD Ticket")
+        ticket.flags.anonymous_submission = True
+        ticket.flags.anonymous_ticket_key = "guest-key"
+        ticket.owner = "Administrator"
+        ticket.raised_by = "visitor@example.com"
+
+        ticket.before_insert()
+
+        self.assertEqual(ticket.owner, "Guest")
+        self.assertEqual(ticket.raised_by, "visitor@example.com")
+        self.assertEqual(ticket.via_customer_portal, 1)
+        self.assertEqual(ticket.key, "guest-key")
+
+    def test_native_ticket_key_is_unique(self):
+        self.assertTrue(frappe.get_meta("HD Ticket").get_field("key").unique)
+
+    def test_invalid_verification_token_is_rejected(self):
+        from helpdesk.anonymous_tickets import verify_guest_submission
+
+        with self.assertRaises(frappe.ValidationError):
+            verify_guest_submission("invalid")
+
+    def test_submission_rejects_invalid_email(self):
+        with self.assertRaises(frappe.ValidationError):
+            _validate_submission(
+                "not-an-email",
+                "",
+                "Need help",
+                "Please assist.",
+                "ICT",
+                "TECH-SUPPORT",
+            )
 
     def test_submission_normalizes_email_and_trims_text(self):
         with patch("helpdesk.anonymous_tickets.frappe.db.exists", return_value=True):
