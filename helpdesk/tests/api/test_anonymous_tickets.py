@@ -56,3 +56,7 @@ class TestAnonymousTicketSubmission(IntegrationTestCase):
 
         self.assertFalse(has_permission(ticket, "Guest"))
         self.assertEqual(permission_query("Guest"), "1=0")
+
+        # Email-as-username accounts must not inherit access from raised_by.
+        self.assertFalse(has_permission(ticket, "visitor@example.com"))
+        self.assertIn("owner != 'Guest'", permission_query("visitor@example.com"))
