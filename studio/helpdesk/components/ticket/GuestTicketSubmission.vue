@@ -6,10 +6,18 @@
       <p v-if="ticketName" class="mt-3 font-medium">{{ __('Ticket reference: {0}', [ticketName]) }}</p>
       <p class="mt-2 text-sm text-ink-gray-6">{{ __('Agent replies and ticket status changes will be sent to your email address.') }}</p>
     </div>
+
+    <div v-else-if="verificationToken && !verificationError" class="rounded-lg border border-outline-gray-2 p-6">
+      <h1 class="text-xl font-semibold text-ink-gray-9">{{ __('Confirm your email') }}</h1>
+      <p class="mt-2 text-ink-gray-6">{{ __('Confirm that you own this email address to submit your helpdesk request.') }}</p>
+      <Button class="mt-4" size="md" variant="solid" :loading="verifying" :label="__('Confirm email and submit request')" @click="verify" />
+    </div>
+
     <div v-else-if="verificationError" role="alert" class="rounded-lg border border-outline-gray-2 p-6">
       <h1 class="text-xl font-semibold text-ink-gray-9">{{ __('Verification unavailable') }}</h1>
       <p class="mt-2 text-ink-gray-6">{{ verificationError }}</p>
     </div>
+
     <form v-else class="flex flex-col gap-4" @submit.prevent="submit">
       <div>
         <h1 class="text-2xl font-semibold text-ink-gray-9">{{ __('Submit a request') }}</h1>
@@ -43,8 +51,10 @@ const form = reactive({ full_name: '', email: '', office: '', request_type: '', 
 const offices = ref<any[]>([])
 const requestTypes = ref<any[]>([])
 const submitting = ref(false)
+const verifying = ref(false)
 const sent = ref(false)
 const verified = ref(false)
+const verificationToken = ref('')
 const verificationError = ref('')
 const ticketName = ref('')
 const error = ref('')
@@ -57,13 +67,8 @@ watch(() => form.office, () => { form.request_type = '' })
 onMounted(async () => {
   const token = typeof route.query.verify === 'string' ? route.query.verify : ''
   if (token) {
-    try {
-      const result = await call('helpdesk.anonymous_tickets.verify_guest_submission', { token })
-      ticketName.value = result.ticket
-      verified.value = Boolean(result.success)
-    } catch {
-      verificationError.value = __('This verification link is invalid, expired, or could not be processed. Please submit a new request.')
-    }
+    // Do not consume the token on page load; mail security scanners may prefetch links.
+    verificationToken.value = token
     return
   }
   try {
@@ -75,6 +80,22 @@ onMounted(async () => {
     error.value = __('Could not load the request form. Please refresh the page or contact the helpdesk.')
   }
 })
+
+async function verify() {
+  if (!verificationToken.value || verifying.value) return
+  verifying.value = true
+  verificationError.value = ''
+  try {
+    const result = await call('helpdesk.anonymous_tickets.verify_guest_submission', { token: verificationToken.value })
+    ticketName.value = result.ticket
+    verified.value = Boolean(result.success)
+    verificationToken.value = ''
+  } catch {
+    verificationError.value = __('This verification link is invalid, expired, or could not be processed. Please submit a new request.')
+  } finally {
+    verifying.value = false
+  }
+}
 
 async function submit() {
   if (!canSubmit.value || submitting.value) return
