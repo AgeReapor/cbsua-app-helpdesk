@@ -38,6 +38,10 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         self.assertIsInstance(UUID(key), UUID)
         self.assertNotEqual(key, _ticket_key(_token_digest("another-token")))
 
+    def test_verification_rejects_malformed_tokens_before_lookup(self):
+        with self.assertRaises(frappe.ValidationError):
+            verify_guest_submission("too-short")
+
     def test_native_ticket_key_is_unique_in_the_doctype_schema(self):
         key_field = frappe.get_meta("HD Ticket").get_field("key")
         self.assertTrue(key_field.unique)
