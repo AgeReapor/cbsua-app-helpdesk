@@ -1,247 +1,89 @@
-<div align="center" markdown="1">
+# CBSUA Helpdesk
 
-<img src=".github/hd-logo.svg" alt="Frappe Helpdesk logo" width="80"/>
-<h1>Frappe Helpdesk</h1>
+CBSUA-maintained fork of [Frappe Helpdesk](https://github.com/frappe/helpdesk), the primary ticketing and service-request application in the CBSUA Helpdesk platform.
 
-**Customer Service, Made Simple and Effective**
+This repository contains the Helpdesk application itself, including its agent workspace, customer-facing portal, ticket lifecycle, and native service-desk capabilities. It is not the deployment repository; image assembly, Compose configuration, release promotion, and operational runbooks live in [cbsua-app-helpdesk-deployment](https://github.com/AgeReapor/cbsua-app-helpdesk-deployment).
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/frappe/helpdesk)
-[![codecov](https://codecov.io/github/frappe/helpdesk/branch/develop/graph/badge.svg?token=8ZXHCY4G9U)](https://codecov.io/github/frappe/helpdesk)
+## Position in the CBSUA stack
 
-<a href="https://trendshift.io/repositories/12764" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12764" alt="teableio%2Fteable | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+| Layer | Repository | Responsibility |
+|---|---|---|
+| Framework | [cbsua-app-frappe](https://github.com/AgeReapor/cbsua-app-frappe) | Shared Frappe platform |
+| Dependency | [cbsua-app-telephony](https://github.com/AgeReapor/cbsua-app-telephony) | Telephony integration required by Helpdesk |
+| Ticketing application | This repository | Helpdesk tickets, agent/customer interfaces, and service-desk behavior |
+| UI library | [cbsua-app-frappe-ui](https://github.com/AgeReapor/cbsua-app-frappe-ui) | Forked Frappe UI submodule used by the frontend |
+| Local development | [cbsua-app-pilot](https://github.com/AgeReapor/cbsua-app-pilot) | Bench lifecycle and local Admin UI |
+| Container build definitions | [cbsua-app-frappe-docker](https://github.com/AgeReapor/cbsua-app-frappe-docker) | Reusable Frappe image and Compose build infrastructure |
+| Release orchestration | [cbsua-app-helpdesk-deployment](https://github.com/AgeReapor/cbsua-app-helpdesk-deployment) | CBSUA image workflow, Compose stack, and deployment documentation |
 
-</div>
+## CBSUA customization principles
 
-</div>
+- Preserve native Frappe Helpdesk functionality wherever possible.
+- Keep CBSUA-specific branding, boot data, defaults, office configuration, and verified institutional workflow changes explicit and documented.
+- Prefer configuration over custom code; add code only for a confirmed requirement that native Helpdesk cannot satisfy safely.
+- Treat office/team authorization as a security boundary that must be tested, not inferred from assignment.
+- Keep the framework and application refs compatible and record exact SHAs in the deployment source lock.
 
-<div align="center">
-	<img src="./.github/Hero2.png" alt="Hero Image" width="100%" />
-</div>
-<br />
-<div align="center">
-	<a href="https://frappe.io/helpdesk">Website</a>
-	-
-	<a href="https://docs.frappe.io/helpdesk">Documentation</a>
-</div>
+The exact current build refs are defined by the deployment workflow and its configuration, not by this README. The deployment baseline currently uses the CBSUA fork branches selected there; do not assume that upstream release branch guidance automatically describes the CBSUA deployment image.
 
-## Frappe Helpdesk
+## Local development with Pilot
 
-Frappe Helpdesk is an 100% open-source Ticket Management tool which helps you streamline your company's support, offers an easy setup, clean user interface, and automation tools to resolve customer queries efficiently.
-
-### Motivation
-
-Managing issues from our customers was a big challenge for us. We were using the ERPNext support module which was not very good in UI and the UX was also not good. We wanted to have a tool that can be easily integrated with our existing system and can be customized as per our needs. So we decided to build Frappe Helpdesk.
-
-### Key Features
-
-- **Agent and Customer Portal Views**: Dual portals for agents and customers to simplify issue submission and management.
-
-- **Customizable SLAs**: Discover how you can set and track SLAs for better response times.
-
-- **Assignment Rules**: Custom auto-assignment of tickets based on priority, issue type, or workload.
-
-- **Knowledge Base**: Learn how to create and manage help articles to empower users and reduce tickets.
-
-- **Saved Replies**: Pre-written replies for common queries to ensure quick and consistent communication.
-
-<details open>
-<summary >View Screenshots</summary>
-<h3></h3>
-
-<div align="center">
-	<sub>
-		Agent List View
-	</sub>
-</div>
-
-![Agent List View](.github/AgentListView.png)
-
-<div align="center">
-	<sub>
-		See each ticket's timeline, response times and conversation summary in Analytics.
-	</sub>
-</div>
-
-![Ticket Analytics](.github/TicketAnalytics.png)
-
-<div align="center">
-	<sub>
-		Customers follow their tickets and reply from the customer portal.
-	</sub>
-</div>
-
-![Customer Ticket View](.github/CustomerTicketView.png)
-
-<div align="center">
-	<sub>
-		Upload articles and let your customer solve their queries through the Knowledge Base.
-	</sub>
-</div>
-
-![Knowledge Base](.github/KB.png)
-
-<div align="center">
-	<sub>
-		With advanced search, your customers will be recommended relevant articles regarding their issue.
-	</sub>
-</div>
-
-![Article Search](.github/Search2.png)
-
-</details>
-<br>
-
-### Under the Hood
-
-- [**Frappe Framework**](https://github.com/frappe/frappe): A full-stack web application framework written in Python and Javascript.
-
-- [**Frappe UI**](https://github.com/frappe/frappe-ui): A Vue-based UI library, to provide a modern user interface.
-
-## Production Setup
-
-### Managed Hosting
-
-You can try [Frappe Cloud](https://frappecloud.com), a simple, user-friendly and sophisticated [open-source](https://github.com/frappe/press) platform to host Frappe applications with peace of mind.
-
-It takes care of installation, setup, upgrades, monitoring, maintenance and support of your Frappe deployments. It is a fully featured developer platform with an ability to manage and control multiple Frappe deployments.
-
-<div>
-	<a href="https://frappecloud.com/helpdesk/signup" target="_blank">
-		<picture>
-			<source media="(prefers-color-scheme: dark)" srcset="https://frappe.io/files/try-on-fc-white.png">
-			<img src="https://frappe.io/files/try-on-fc-black.png" alt="Try on Frappe Cloud" height="28" />
-		</picture>
-	</a>
-</div>
-
-### Self Hosting
-
-Follow these steps to set up Frappe Helpdesk in production:
-
-**Step 1**: Download the easy install script
+The following is the CBSUA Pilot-oriented workflow used for local prototyping. Run commands from the environment where Pilot is installed:
 
 ```bash
-wget https://frappe.io/easy-install.py
+pilot new cbsua-app-bench
+pilot -b cbsua-app-bench start
 ```
 
-**Step 2**: Run the deployment command
+Open the Pilot Admin UI at the URL printed by Pilot (the local development setup commonly exposes `http://[::1]:7000/sites`).
+
+Fetch the CBSUA forks:
 
 ```bash
-python3 ./easy-install.py deploy \
-    --project=helpdesk_prod_setup \
-    --email=your_email.example.com \
-    --image=ghcr.io/frappe/helpdesk \
-    --version=stable \
-    --app=helpdesk \
-    --sitename subdomain.domain.tld
+pilot get-app https://github.com/AgeReapor/cbsua-app-telephony
+pilot get-app https://github.com/AgeReapor/cbsua-app-helpdesk
 ```
 
-Replace the following parameters with your values:
+Install the application dependency before Helpdesk:
 
-- `your_email.example.com`: Your email address
-- `subdomain.domain.tld`: Your domain name where Helpdesk will be hosted
+```bash
+pilot --site cbsua-helpdesk.localhost install-app telephony
+pilot --site cbsua-helpdesk.localhost install-app helpdesk
+```
 
-The script will set up a production-ready instance of Frappe Helpdesk with all the necessary configurations in about 5 minutes.
+Build the Helpdesk frontend:
 
-## Development Setup
+```bash
+pilot build --app helpdesk
+```
 
-### Docker
+These commands assume the site already exists and that the bench has been initialized with the compatible CBSUA Frappe fork. Follow Pilot's own setup prompts and the deployment repository's current compatibility/source-lock baseline. Do not treat this short sequence as a complete production deployment guide.
 
-You need Docker, docker-compose and git setup on your machine. Refer [Docker documentation](https://docs.docker.com/). After that, follow below steps:
+## Production image and deployment
 
-**Step 1**: Setup folder and download the required files
+Use [cbsua-app-helpdesk-deployment](https://github.com/AgeReapor/cbsua-app-helpdesk-deployment) for:
 
-    mkdir frappe-helpdesk
-    cd frappe-helpdesk
+- canonical application refs and source locks;
+- building and publishing the combined image;
+- local Docker Compose testing of the published image;
+- production Compose configuration, migrations, backups, rollback, and release validation.
 
-    # Download the docker-compose file
-    wget -O docker-compose.yml https://raw.githubusercontent.com/frappe/helpdesk/develop/docker/docker-compose.yml
+The reusable Docker build system is maintained in [cbsua-app-frappe-docker](https://github.com/AgeReapor/cbsua-app-frappe-docker).
 
-    # Download the setup script
-    wget -O init.sh https://raw.githubusercontent.com/frappe/helpdesk/develop/docker/init.sh
+## Development and contribution
 
-**Step 2**: Run the container and daemonize it
+Before changing Helpdesk:
 
-    docker compose up -d
+1. Read the deployment repository's architecture and SRS to understand CBSUA requirements.
+2. Check whether the desired behavior already exists in native Helpdesk.
+3. Identify the correct layer for the change (framework, UI library, Helpdesk, or deployment configuration).
+4. Document the change and compatibility impact.
+5. Run relevant backend/frontend tests and validate the combined image before release.
 
-**Step 3**: The site [http://helpdesk.localhost:8000/helpdesk](http://helpdesk.localhost:8000/helpdesk) should now be available. The default credentials are:
+## Upstream relationship
 
-- Username: Administrator
-- Password: admin
+This is a fork of Frappe Helpdesk. Keep upstream attribution and licensing intact. Review upstream changes deliberately, preserve CBSUA-specific changes, and record significant divergences so future rebases and upgrades remain understandable.
 
-### Local
+## License
 
-To setup the repository locally follow the steps mentioned below:
-
-1. Install bench and setup a `frappe-bench` directory by following the [Installation Steps](https://frappeframework.com/docs/user/en/installation)
-1. Start the server by running `bench start`
-1. In a separate terminal window, create a new site by running `bench new-site helpdesk.test`
-1. Map your site to localhost with the command `bench --site helpdesk.test add-to-hosts`
-1. Get the Telephony app. Run `bench get-app https://github.com/frappe/telephony` -> `pilot get-app https://github.com/AgeReapor/cbsua-app-telephony`
-1. Get the Helpdesk app. Run `bench get-app https://github.com/frappe/helpdesk` -> `pilot get-app https://github.com/AgeReapor/cbsua-app-helpdesk`
-1. Run `bench --site helpdesk.test install-app helpdesk`.
-1. Run `bench build --app helpdesk`. This also builds the customer portal.
-1. Now open the URL `http://helpdesk.test:8000/helpdesk` in your browser, you should see the app running. Customers use the portal at `http://helpdesk.test:8000/help`.
-
-**Note:** The `develop` branch needs frappe `develop`, which ships Studio, the app that runs the customer portal. Article search needs Redis with the RediSearch module, for example [Redis Stack](https://redis.io/docs/latest/operate/oss_and_stack/install/install-stack/), in your bench's `redis_cache`.
-
-**For Frontend Development**
-
-The agent portal:
-
-1. Open a new terminal session and cd into `frappe-bench/apps/helpdesk/desk`, and run the following commands:
-   ```
-   yarn install
-   yarn dev or yarn dev --host helpdesk.test
-   ```
-1. Now, you can access the site on vite dev server at `http://helpdesk.test:8080`
-
-The customer portal, a Studio app:
-
-1. Enable developer mode, allow the dev server's requests, and install dev dependencies:
-   ```
-   bench set-config -g developer_mode 1
-   bench --site helpdesk.test set-config ignore_csrf 1
-   bench setup requirements --dev
-   ```
-1. Run `yarn install` in `frappe-bench/apps/helpdesk`. This links `@helpdesk/shared`, the code that the desk and the portal share.
-1. Start Studio's dev server in `frappe-bench/apps/frappe/studio/frontend` with `yarn install` and `yarn dev --host`. In developer mode, `bench watch` starts it for you.
-1. In another terminal, run `bench --site helpdesk.test watch-studio` and keep it running. It imports the page JSON that you change.
-1. Open `http://helpdesk.test:8080/dev/help`. If the desk's dev server already holds 8080, use the port that Studio's dev server prints. `/help` serves the last build, so it shows your changes only after `bench build --app helpdesk`.
-1. To edit the portal in the Studio editor, open `http://helpdesk.test:8080/studio` on the same dev server as Administrator and select the **Helpdesk** app. In developer mode, a save writes the page JSON to `frappe-bench/apps/helpdesk/studio`.
-
-**Note:** Helpdesk’s frontend code is in `frappe-bench/apps/helpdesk/desk`, the portal's in `frappe-bench/apps/helpdesk/studio`, and the code they share in `frappe-bench/apps/helpdesk/shared`. See [`studio/README.md`](studio/README.md) for how the portal is laid out.
-
-## Compatibility matrix
-
-| Helpdesk Branch | Compatible Frappe Framework Version |
-| --------------- | ----------------------------------- |
-| version-15      | version-15                          |
-| version-16      | version-16                          |
-| develop         | develop branch                      |
-
-`main` stopped at 1.32 and gets no more updates. Move to `version-15` or `version-16`, the one that matches your Frappe version.
-
-## Learn and connect
-
-- [Telegram Public Group](https://t.me/frappedesk)
-- [Discuss Forum](https://discuss.frappe.io/c/frappehelpdesk/69)
-- [Documentation](https://docs.frappe.io/helpdesk)
-
-## Contributing
-
-1. [Issue Guidelines](https://github.com/frappe/erpnext/wiki/Issue-Guidelines)
-1. [Report Security Vulnerabilities](https://frappe.io/security)
-1. [Pull Request Requirements](https://github.com/frappe/erpnext/wiki/Contribution-Guidelines)
-1. [Translations](https://crowdin.com/project/frappe)
-
-<br>
-<br>
-<div align="center">
-	<a href="https://frappe.io" target="_blank">
-		<picture>
-			<source media="(prefers-color-scheme: dark)" srcset="https://frappe.io/files/Frappe-white.png">
-			<img src="https://frappe.io/files/Frappe-black.png" alt="Frappe Technologies" height="28"/>
-		</picture>
-	</a>
-</div>
+See [LICENSE](LICENSE) and upstream notices for licensing terms.
