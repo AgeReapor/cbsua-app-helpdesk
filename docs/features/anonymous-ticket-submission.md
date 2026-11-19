@@ -31,7 +31,7 @@ The public API does not accept arbitrary DocType dictionaries, ticket identifier
 
 The guest service performs a narrowly scoped server-side `insert(ignore_permissions=True)`. This is not a Guest role permission grant: no generic `HD Ticket` create/read/write permission is added, and the authenticated `api.new`, ticket list, and ticket detail endpoints remain unchanged.
 
-The native portal ticket lifecycle skips acknowledgement email. After verified creation, the service explicitly invokes the existing Helpdesk acknowledgement email. The existing agent reply method defaults its recipient to `raised_by`, so public agent replies can use the verified external address.
+The native portal ticket lifecycle skips acknowledgement email. After verified creation, the service explicitly invokes the existing Helpdesk acknowledgement email. The existing agent reply method defaults its recipient to `raised_by`, so public agent replies can use the verified external address. A dedicated `HD Ticket.on_update` hook emails a minimal status-only notice when the ticket owner is `Guest` and the status changes; it respects the Helpdesk email-workflow skip setting.
 
 ## Privacy and security constraints
 
