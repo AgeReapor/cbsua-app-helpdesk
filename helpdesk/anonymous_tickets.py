@@ -66,6 +66,16 @@ def _validate_submission(
             _("Subject contains unsupported control characters."),
             frappe.ValidationError,
         )
+    if any(ord(character) < 32 for character in full_name):
+        frappe.throw(_("Name contains unsupported control characters."), frappe.ValidationError)
+    if any(
+        ord(character) < 32 and character not in "\\n\\r\\t"
+        for character in description
+    ):
+        frappe.throw(
+            _("Description contains unsupported control characters."),
+            frappe.ValidationError,
+        )
     if len(full_name) > 140:
         frappe.throw(_("Name must be 140 characters or fewer."))
     if not subject or len(subject) > 140:
