@@ -14,7 +14,12 @@ setLocalTimezone(window.boot?.user_timezone)
 // Stored icons can be any lucide name, beyond Studio's build-time classes.
 if (!document.getElementById('lucide-sprite')) spritePlugin.install()
 
-if (window.boot?.send_guest_to_login) {
+// The private-KB exception is intentionally limited to this one public submission route.
+function isGuestSubmissionRoute() {
+  return location.pathname.replace(/\\/+$/, '') === '/help/guest/new'
+}
+
+if (window.boot?.send_guest_to_login && !isGuestSubmissionRoute()) {
   document.documentElement.style.visibility = 'hidden'
   location.replace(loginUrl())
 } else if (location.pathname === '/' && window.boot?.home_page && window.boot.home_page !== '/') {
@@ -80,9 +85,9 @@ function createSessionStore() {
     socket.on('helpdesk:settings-updated', reloadSession)
   }
 
-  // A private knowledge base 403s every guest call.
+  // A private knowledge base 403s every guest call except the guest submission page.
   function sendGuestToLogin() {
-    if (!isGuest.value || isPublicKnowledgeBase.value) return
+    if (!isGuest.value || isPublicKnowledgeBase.value || isGuestSubmissionRoute()) return
     signIn()
   }
 
@@ -124,5 +129,6 @@ function createSessionStore() {
 // Frappe's login sends website users to `last_visited`; agents go to their role's home.
 function loginUrl() {
   localStorage.setItem('last_visited', location.pathname + location.search)
-  return '/login'
+  const isHelpdeskPortal = location.pathname === '/help' || location.pathname.startsWith('/help/')
+  return isHelpdeskPortal ? '/login?helpdesk_guest=1' : '/login'
 }
