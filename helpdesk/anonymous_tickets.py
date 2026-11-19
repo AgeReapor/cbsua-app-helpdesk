@@ -35,6 +35,12 @@ def _ticket_key(digest: str) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_URL, f"cbsua-guest-ticket:{digest}"))
 
 
+def _release_verification_lock(lock) -> None:
+    """Release a verification lock only after the surrounding DB transaction settles."""
+    if lock.owned():
+        lock.release()
+
+
 def _validate_submission(
     email: str,
     full_name: str,
@@ -163,55 +169,64 @@ def verify_guest_submission(token: str) -> dict:
 
     cache_key = _cache_key(digest)
     lock_name = f"{frappe.local.site}:{cache_key}:verify-lock"
-    with frappe.cache.lock(lock_name, timeout=300, blocking_timeout=15):
-        existing = frappe.db.get_value("HD Ticket", {"key": key}, "name")
-        if existing:
-            return {"success": True, "ticket": existing}
+    lock = frappe.cache.lock(lock_name, timeout=300, blocking_timeout=15)
+    if not lock.acquire():
+        frappe.throw(_("This verification request is already being processed. Please try again."))
 
-        payload = frappe.cache.get_value(cache_key)
-        if not isinstance(payload, dict):
-            frappe.throw(_("This verification link is invalid or has expired."))
+    # Keep the distributed lock until the database transaction settles. Releasing
+    # it when this function returns is too early: Frappe commits the request only
+    # after the whitelisted method returns, allowing a concurrent request to see
+    # neither the first ticket nor its cache cleanup and create a duplicate.
+    frappe.db.after_commit.add(lambda: _release_verification_lock(lock))
+    frappe.db.after_rollback.add(lambda: _release_verification_lock(lock))
 
-        # Recheck routing at verification time; an office/type may have been disabled.
-        payload = _validate_submission(
-            payload["email"],
-            payload.get("full_name", ""),
-            payload["subject"],
-            payload["description"],
-            payload["office"],
-            payload["request_type"],
-        )
+    existing = frappe.db.get_value("HD Ticket", {"key": key}, "name")
+    if existing:
+        return {"success": True, "ticket": existing}
 
-        description_html = html.escape(payload["description"]).replace("\n", "<br>")
+    payload = frappe.cache.get_value(cache_key)
+    if not isinstance(payload, dict):
+        frappe.throw(_("This verification link is invalid or has expired."))
 
-        ticket = frappe.get_doc(
-            {
-                "doctype": "HD Ticket",
-                "subject": payload["subject"],
-                "description": description_html,
-                "raised_by": payload["email"],
-                "via_customer_portal": 1,
-                "office": payload["office"],
-                "request_type": payload["request_type"],
-            }
-        )
-        ticket.flags.anonymous_submission = True
-        ticket.flags.anonymous_requester_name = payload["full_name"]
-        ticket.flags.anonymous_ticket_key = key
-        # This is a narrow server-side insert. Guest receives no DocType permission.
-        ticket.insert(ignore_permissions=True)
+    # Recheck routing at verification time; an office/type may have been disabled.
+    payload = _validate_submission(
+        payload["email"],
+        payload.get("full_name", ""),
+        payload["subject"],
+        payload["description"],
+        payload["office"],
+        payload["request_type"],
+    )
 
-        # The native portal lifecycle skips its acknowledgement email. Send the
-        # existing Helpdesk acknowledgement explicitly after verified creation.
-        if (
-            not frappe.flags.initial_sync
-            and frappe.db.get_single_value("HD Settings", "send_acknowledgement_email")
-        ):
-            ticket.send_acknowledgement_email()
-        # Keep the pending payload retryable if the DB transaction rolls back.
-        frappe.db.after_commit.add(lambda: frappe.cache.delete_value(cache_key))
-        return {"success": True, "ticket": ticket.name}
+    description_html = html.escape(payload["description"]).replace("\\n", "<br>")
 
+    ticket = frappe.get_doc(
+        {
+            "doctype": "HD Ticket",
+            "subject": payload["subject"],
+            "description": description_html,
+            "raised_by": payload["email"],
+            "via_customer_portal": 1,
+            "office": payload["office"],
+            "request_type": payload["request_type"],
+        }
+    )
+    ticket.flags.anonymous_submission = True
+    ticket.flags.anonymous_requester_name = payload["full_name"]
+    ticket.flags.anonymous_ticket_key = key
+    # This is a narrow server-side insert. Guest receives no DocType permission.
+    ticket.insert(ignore_permissions=True)
+
+    # The native portal lifecycle skips its acknowledgement email. Send the
+    # existing Helpdesk acknowledgement explicitly after verified creation.
+    if (
+        not frappe.flags.initial_sync
+        and frappe.db.get_single_value("HD Settings", "send_acknowledgement_email")
+    ):
+        ticket.send_acknowledgement_email()
+    # Keep the pending payload retryable if the DB transaction rolls back.
+    frappe.db.after_commit.add(lambda: frappe.cache.delete_value(cache_key))
+    return {"success": True, "ticket": ticket.name}
 
 
 def notify_anonymous_requester_status(doc, method=None) -> None:
