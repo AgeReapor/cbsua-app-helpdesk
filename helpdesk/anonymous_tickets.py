@@ -198,7 +198,17 @@ def notify_anonymous_requester_status(doc, method=None) -> None:
     ):
         return
 
-    status_label = frappe.db.get_value("HD Ticket Status", doc.status, "label") or doc.status
+    status = frappe.db.get_value(
+        "HD Ticket Status",
+        doc.status,
+        ["label_agent", "label_customer", "different_view"],
+        as_dict=True,
+    )
+    status_label = (
+        status.label_customer
+        if status and status.different_view and status.label_customer
+        else status.label_agent if status else doc.status
+    )
     message = (
         f"<p>{_('Your CBSUA Helpdesk request has a status update.')}</p>"
         f"<p><strong>{_('Ticket')}:</strong> {html.escape(doc.name)}</p>"
