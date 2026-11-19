@@ -62,7 +62,10 @@ def _validate_submission(
         frappe.throw(_("Email address is too long."), frappe.ValidationError)
     validate_email_address(email, throw=True)
     if any(ord(character) < 32 for character in subject):
-        frappe.throw(_("Subject contains unsupported control characters."), frappe.ValidationError)
+        frappe.throw(
+            _("Subject contains unsupported control characters."),
+            frappe.ValidationError,
+        )
     if len(full_name) > 140:
         frappe.throw(_("Name must be 140 characters or fewer."))
     if not subject or len(subject) > 140:
