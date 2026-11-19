@@ -21,7 +21,7 @@ The guest endpoints live in `helpdesk/anonymous_tickets.py`:
 | `start_guest_submission` | Validate allowlisted fields, cache a short-lived pending request, and send verification email |
 | `verify_guest_submission` | Consume a verified token and create one native ticket |
 
-The endpoints are explicitly guest-whitelisted and method-restricted. Submission and verification have IP-based rate limits. The pending record expires after 30 minutes. The email token is generated with `secrets.token_urlsafe`; only its SHA-256 digest is used in the cache key. Opening the link does not consume the token: the page requires an explicit confirmation click so mail-security link scanners do not automatically create tickets. The token is single-use, and a site-scoped cache lock plus a deterministic native ticket key makes verification retries idempotent. The native `HD Ticket.key` field now has a database unique constraint, so the database is the final concurrency guard if requests race. Existing key values must be checked by running migration on a representative copy before release.
+The endpoints are explicitly guest-whitelisted and method-restricted. Submission and verification have IP-based rate limits. The pending record expires after 30 minutes. The email token is generated with `secrets.token_urlsafe`; only its SHA-256 digest is used in the cache key. Opening the link does not consume the token: the page requires an explicit confirmation click so mail-security link scanners do not automatically create tickets. The verification token can create only one ticket; retries after a successful commit return that same ticket reference. A site-scoped Redis lock is held until the surrounding database transaction commits or rolls back, preventing a second request from racing the first request's uncommitted insert. The deterministic native ticket key is also backed by the `HD Ticket.key` database unique constraint as a final concurrency guard. Existing key values and the unique index must be checked by running migration on a representative copy before release.
 
 The public API does not accept arbitrary DocType dictionaries, ticket identifiers, contact/customer links, assignment, priority, status, internal visibility, or attachment references. The HD Ticket permission hook explicitly denies Guest reads and excludes Guest-owned tickets from non-agent read/list access, including the edge case where a registered user's login name matches the submitted email address. Agents still use the normal team/assignment visibility checks. Office and request type are revalidated at verification time.
 
@@ -48,12 +48,12 @@ The native portal ticket lifecycle skips acknowledgement email. After verified c
 
 ## Remaining work before release
 
-1. Run backend tests on a disposable Frappe v17-compatible bench and confirm the `extend_doctype_class` MRO on the deployed framework commit.
+1. Run `bench --site <site> run-tests --app helpdesk --module helpdesk.tests.test_anonymous_tickets` on a disposable Frappe v17-compatible bench and confirm the `extend_doctype_class` MRO on the deployed framework commit.
 2. Test the guest flow end-to-end with a real outbound email account: start, verify, duplicate verification, expiry, and acknowledgement delivery.
 3. Test a submitted email that already belongs to a Contact linked to another user; confirm the new ticket has no Contact or HD Customer association.
 4. Test authenticated ticket creation, authenticated `/help/my-tickets`, ticket detail, and agent replies for regressions.
 5. Audit inbound email sender matching before considering replies from the requester.
-6. Run Frappe Semgrep on changed Python files and the Studio production build; inspect the public page as Guest and as an authenticated user.
+6. Run Frappe Semgrep on changed Python files and the Studio production build; inspect the public page as Guest and as an authenticated user. The focused helper tests are in `helpdesk/tests/test_anonymous_tickets.py`; they do not replace end-to-end verification/replay/Contact-collision tests.
 7. Decide whether to add CAPTCHA or additional deployment-level abuse controls based on observed traffic. IP rate limiting is the current MVP baseline.
 
 ## Current limitations
