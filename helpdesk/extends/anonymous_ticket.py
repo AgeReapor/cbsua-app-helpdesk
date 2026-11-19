@@ -8,6 +8,14 @@ import frappe
 class AnonymousHDTicketMixin:
     """Keep email-only requesters separate from authenticated Contact identities."""
 
+    def apply_ticket_insert_rules(self) -> None:
+        if getattr(self.flags, "anonymous_submission", False):
+            # The guest service owns requester identity and all insertable fields.
+            # Do not replace the verified email with the current session user.
+            self.via_customer_portal = 1
+            return
+        super().apply_ticket_insert_rules()
+
     def validate_portal_contact(self) -> None:
         if getattr(self.flags, "anonymous_submission", False):
             return
