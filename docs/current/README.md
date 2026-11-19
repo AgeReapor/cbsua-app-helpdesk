@@ -124,7 +124,7 @@ Initial inspection has confirmed the framework/UI dependency roles, the Studio-b
 
 - [x] Locate the existing `/help` route: it is the Helpdesk Studio App rendered by Frappe Studio, not a standalone SPA or generic Web Form.
 - [x] Identify the authenticated submission flow: Studio `new_ticket` page and `NewTicketForm.vue`; retain its conventions without exposing its authenticated API.
-- [x] Inspect the `HD Ticket` requester field and initial controller lifecycle. **Open blocker:** Contact auto-association can reject or incorrectly associate anonymous submissions; see architecture.md.
+- [x] Inspect the `HD Ticket` requester field and controller lifecycle. The current implementation resolves Contact collisions with a narrowly scoped `extend_doctype_class` mixin that skips Contact/Customer association only for verified guest submissions; end-to-end collision tests remain pending.
 - [x] Trace requester email, Contact/customer association, and ticket permission behavior at controller level; end-to-end account/email identity behavior still requires tests.
 - [ ] Complete outbound email audit: acknowledgement is skipped for portal-origin tickets; agent replies can email `raised_by`; realtime customer notifications resolve Frappe Users and do not notify email-only requesters. Verify every template and event.
 - [ ] Complete inbound email trust audit: Message-ID/References thread stitching exists, but sender-address ownership validation has not been established.
