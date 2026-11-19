@@ -17,12 +17,16 @@ class TestAnonymousTicketSubmission(IntegrationTestCase):
     def test_anonymous_insert_rules_preserve_verified_email(self):
         ticket = frappe.new_doc("HD Ticket")
         ticket.flags.anonymous_submission = True
+        ticket.flags.anonymous_ticket_key = "guest-key"
+        ticket.owner = "Administrator"
         ticket.raised_by = "visitor@example.com"
 
-        ticket.apply_ticket_insert_rules()
+        ticket.before_insert()
 
+        self.assertEqual(ticket.owner, "Guest")
         self.assertEqual(ticket.raised_by, "visitor@example.com")
         self.assertEqual(ticket.via_customer_portal, 1)
+        self.assertEqual(ticket.key, "guest-key")
 
     def test_native_ticket_key_is_unique_for_idempotent_creation(self):
         self.assertTrue(frappe.get_meta("HD Ticket").get_field("key").unique)
