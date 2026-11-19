@@ -197,7 +197,10 @@ def verify_guest_submission(token: str) -> dict:
 
         # The native portal lifecycle skips its acknowledgement email. Send the
         # existing Helpdesk acknowledgement explicitly after verified creation.
-        if frappe.db.get_single_value("HD Settings", "send_acknowledgement_email"):
+        if (
+            not frappe.flags.initial_sync
+            and frappe.db.get_single_value("HD Settings", "send_acknowledgement_email")
+        ):
             ticket.send_acknowledgement_email()
         frappe.cache.delete_value(cache_key)
         return {"success": True, "ticket": ticket.name}
