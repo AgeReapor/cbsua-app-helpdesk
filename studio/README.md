@@ -49,7 +49,8 @@ studio/helpdesk/
 | `category` | `/help/category/:category` | yes | Articles in one category |
 | `article` | `/help/articles/:name` | yes | Article body, contents, feedback, related articles |
 | `customer_tickets` | `/help/my-tickets` | no | Ticket list with saved views, filters, sort and export |
-| `new_ticket` | `/help/tickets/new` | no | New ticket form with article suggestions |
+| `new_ticket` | `/help/tickets/new` | no | Authenticated ticket form with article suggestions |
+| `guest_new_ticket` | `/help/guest/new` | yes | Email-verified anonymous request submission |
 | `ticket` | `/help/tickets/:name` | no | Ticket thread, reply composer, details and feedback |
 
 The `article` URL param is `<name>-<slug>`. `articleName()` in `stores/knowledgeBase.ts` reads the name from it.
@@ -68,6 +69,7 @@ Every page embeds `header` and `kb_settings`.
 Under `components/`, by area: `ui`, `header`, `list`, `ticket`, `knowledge_base` and `settings`. A block uses one with `isCustomVueComponent: true` and the file name as `componentName`.
 
 - Portal-only components start with `Portal`.
+- `PortalGuestTicketSubmission.vue` owns the guest request form and explicit email-verification confirmation; it does not reuse the authenticated `NewTicketForm.vue` upload/API assumptions.
 - The file name must be unique in `studio/helpdesk/` and must not match a Studio built-in component. Studio skips a clash and writes an Error Log.
 - The desk imports `NewTicketForm.vue`, `CustomActions.vue` and `SettingsBackButton.vue` from here by relative path. Test the desk when you change them.
 
