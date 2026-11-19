@@ -36,7 +36,7 @@ def _ticket_key(digest: str) -> str:
 
 
 def _release_verification_lock(lock) -> None:
-    """Release a verification lock only after the surrounding DB transaction settles."""
+    """Release a verification lock after the database transaction settles."""
     if lock.owned():
         lock.release()
 
@@ -180,7 +180,9 @@ def verify_guest_submission(token: str) -> dict:
     lock_name = f"{frappe.local.site}:{cache_key}:verify-lock"
     lock = frappe.cache.lock(lock_name, timeout=300, blocking_timeout=15)
     if not lock.acquire():
-        frappe.throw(_("This verification request is already being processed. Please try again."))
+        frappe.throw(
+            _("This verification request is already being processed. Please try again.")
+        )
 
     # Keep the distributed lock until the database transaction settles. Releasing
     # it when this function returns is too early: Frappe commits the request only
