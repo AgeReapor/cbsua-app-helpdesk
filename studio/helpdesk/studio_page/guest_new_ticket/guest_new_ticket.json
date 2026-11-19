@@ -61,7 +61,7 @@
   "name": "guest_new_ticket",
   "owner": "Administrator",
   "page_name": "page-guest-anon-ticket",
-  "page_title": "Submit a request",
+  "page_title": "Guest New Ticket",
   "published": 1,
   "resources": [],
   "route": "/guest/new",
