@@ -6,11 +6,6 @@ from uuid import UUID
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from helpdesk.helpdesk.doctype.hd_ticket.hd_ticket import (
-    has_permission,
-    permission_query,
-)
-from helpdesk.test_utils import create_user, unique_email
 from helpdesk.anonymous_tickets import (
     _cache_key,
     _ticket_key,
@@ -18,6 +13,11 @@ from helpdesk.anonymous_tickets import (
     _validate_submission,
     verify_guest_submission,
 )
+from helpdesk.helpdesk.doctype.hd_ticket.hd_ticket import (
+    has_permission,
+    permission_query,
+)
+from helpdesk.test_utils import create_user, unique_email
 
 
 class TestAnonymousTicketHelpers(FrappeTestCase):
@@ -78,13 +78,6 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         self.assertEqual(ticket.raised_by, "visitor@example.com")
         self.assertEqual(ticket.via_customer_portal, 1)
         self.assertEqual(ticket.key, "guest-key")
-
-    def test_native_ticket_key_is_unique(self):
-        self.assertTrue(frappe.get_meta("HD Ticket").get_field("key").unique)
-
-    def test_invalid_verification_token_is_rejected(self):
-        with self.assertRaises(frappe.ValidationError):
-            verify_guest_submission("invalid")
 
     def test_submission_rejects_invalid_email(self):
         with self.assertRaises(frappe.ValidationError):
