@@ -186,14 +186,7 @@ def verify_guest_submission(token: str) -> dict:
         ticket.flags.anonymous_submission = True
         ticket.flags.anonymous_ticket_key = key
         # This is a narrow server-side insert. Guest receives no DocType permission.
-        try:
-            ticket.insert(ignore_permissions=True)
-        except frappe.DuplicateEntryError:
-            # The unique HD Ticket key is the final guard if two workers race.
-            existing = frappe.db.get_value("HD Ticket", {"key": key}, "name")
-            if existing:
-                return {"success": True, "ticket": existing}
-            raise
+        ticket.insert(ignore_permissions=True)
 
         # The native portal lifecycle skips its acknowledgement email. Send the
         # existing Helpdesk acknowledgement explicitly after verified creation.
