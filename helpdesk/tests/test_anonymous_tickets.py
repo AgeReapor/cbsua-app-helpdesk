@@ -71,6 +71,28 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
                     "REG-INQUIRY",
                 )
 
+    def test_submission_rejects_non_string_fields_and_subject_controls(self):
+        with self.assertRaises(frappe.ValidationError):
+            _validate_submission(
+                ["requester@example.com"],
+                "",
+                "Need help",
+                "Please assist.",
+                "ICT",
+                "TECH-SUPPORT",
+            )
+
+        with patch("helpdesk.anonymous_tickets.frappe.db.exists", return_value=True):
+            with self.assertRaises(frappe.ValidationError):
+                _validate_submission(
+                    "requester@example.com",
+                    "",
+                    "Need help\\nBcc: attacker@example.com",
+                    "Please assist.",
+                    "ICT",
+                    "TECH-SUPPORT",
+                )
+
     def test_submission_rejects_empty_or_oversized_content(self):
         with patch("helpdesk.anonymous_tickets.frappe.db.exists", return_value=True):
             with self.assertRaises(frappe.ValidationError):
