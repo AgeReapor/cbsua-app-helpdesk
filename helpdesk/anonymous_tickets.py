@@ -282,3 +282,25 @@ def notify_anonymous_requester_status(doc, method=None) -> None:
             title="Anonymous ticket status email failed",
             message=f"Could not queue a status email for HD Ticket {doc.name}.",
         )
+
+
+
+def send_guest_acknowledgement_email(ticket) -> None:
+    """Send a requester-safe acknowledgement without an authenticated portal link."""
+    message = (
+        f"<p>{_('Thank you for contacting CBSUA Helpdesk. We have received your request.')}</p>"
+        f"<p><strong>{_('Ticket reference')}:</strong> {html.escape(ticket.name)}</p>"
+        f"<p><strong>{_('Subject')}:</strong> {html.escape(ticket.subject or '')}</p>"
+        f"<p>{_('Our team will review your request and contact you using this email address.')}</p>"
+        f"<p>{_('Keep this reference for future correspondence. Anonymous requests cannot be viewed in the ticket portal.')}</p>"
+    )
+    frappe.sendmail(
+        recipients=[ticket.raised_by],
+        subject=_("Ticket #{0}: We've received your request").format(ticket.name),
+        message=message,
+        reference_doctype="HD Ticket",
+        reference_name=ticket.name,
+        now=ticket.instantly_send_email(),
+        expose_recipients="header",
+        email_headers={"X-Auto-Generated": "hd-acknowledgement"},
+    )
