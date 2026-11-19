@@ -106,7 +106,7 @@ async function verify() {
     verified.value = Boolean(result.success)
     verificationToken.value = ''
   } catch {
-    verificationError.value = __('This verification link is invalid, expired, or could not be processed. Please submit a new request.')
+    verificationError.value = __('This link may have expired or already been used. Open it again from your email to check whether the request was submitted. If it still fails, contact the helpdesk before creating another request.')
   } finally {
     verifying.value = false
   }
