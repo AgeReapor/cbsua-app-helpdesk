@@ -187,7 +187,6 @@ def verify_guest_submission(token: str) -> dict:
         ticket = frappe.get_doc(
             {
                 "doctype": "HD Ticket",
-                "owner": "Guest",
                 "subject": payload["subject"],
                 "description": description_html,
                 "raised_by": payload["email"],
