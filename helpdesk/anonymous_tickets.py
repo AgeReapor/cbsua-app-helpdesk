@@ -159,7 +159,6 @@ def verify_guest_submission(token: str) -> dict:
             payload.get("full_name", ""),
             payload["subject"],
             payload["description"],
-            payload["description"],
             payload["office"],
             payload["request_type"],
         )
