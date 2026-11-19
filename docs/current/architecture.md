@@ -330,7 +330,7 @@ The initial implementation on `feat/anonymous-tickets` consists of:
 - `helpdesk/extends/anonymous_ticket.py`: a narrow `HDTicket` mixin that skips Contact ownership checks and Contact/Customer auto-association only when the server sets the transient verified-submission flag.
 - `helpdesk/hooks.py`: registers the mixin with `extend_doctype_class`.
 - `studio/helpdesk/studio_page/guest_new_ticket/`: a guest-enabled Studio page at `/help/guest/new`.
-- `studio/helpdesk/components/ticket/GuestTicketSubmission.vue`: the guest form and verification confirmation state.
+- `studio/helpdesk/components/ticket/PortalPortalGuestTicketSubmission.vue`: the guest form and verification confirmation state.
 - `shared/src/portalRoutes.ts`: the `guestTicket` route.
 - `studio/helpdesk/studio_page/public_kb/public_kb.json`: public entry point to the guest form.
 
