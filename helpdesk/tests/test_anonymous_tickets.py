@@ -6,7 +6,10 @@ from uuid import UUID
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from helpdesk.helpdesk.doctype.hd_ticket.hd_ticket import has_permission, permission_query
+from helpdesk.helpdesk.doctype.hd_ticket.hd_ticket import (
+    has_permission,
+    permission_query,
+)
 from helpdesk.test_utils import create_user, unique_email
 from helpdesk.anonymous_tickets import (
     _cache_key,
@@ -144,7 +147,7 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
                 _validate_submission(
                     "requester@example.com",
                     "",
-                    "Need help\\nBcc: attacker@example.com",
+                    "Need help\nBcc: attacker@example.com",
                     "Please assist.",
                     "ICT",
                     "TECH-SUPPORT",
