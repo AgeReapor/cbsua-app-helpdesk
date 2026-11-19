@@ -235,13 +235,19 @@ def notify_anonymous_requester_status(doc, method=None) -> None:
     try:
         if not doc.sender_email():
             return
+        last_communication = doc._last_threadable_communication()
+        in_reply_to = (
+            frappe.db.get_value("Communication", last_communication, "message_id")
+            if last_communication
+            else None
+        )
         frappe.sendmail(
             recipients=[doc.raised_by],
             subject=_("Ticket #{0}: status update").format(doc.name),
             message=message,
             reference_doctype="HD Ticket",
             reference_name=doc.name,
-            in_reply_to=doc._last_threadable_communication(),
+            in_reply_to=in_reply_to,
             email_headers={"X-Auto-Generated": "hd-anonymous-status-update"},
         )
     except Exception:
