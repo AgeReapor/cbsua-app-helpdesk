@@ -167,7 +167,7 @@
         size="md"
         variant="solid"
         :loading="submitting"
-        :disabled="!canSubmit"
+        :disabled="!canSubmit || sent"
         :label="__('Send verification email')"
       />
       <p v-if="sent" role="status" class="text-sm text-ink-gray-6">
@@ -239,6 +239,14 @@ watch(
   () => {
     form.request_type = ''
   }
+)
+
+watch(
+  form,
+  () => {
+    sent.value = false
+  },
+  { deep: true }
 )
 
 onMounted(async () => {
