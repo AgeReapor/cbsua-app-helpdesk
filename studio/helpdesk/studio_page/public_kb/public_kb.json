@@ -20,6 +20,38 @@
      "isStudioComponent": true
     },
     {
+     "blockName": "guest-request-entry",
+     "componentId": "container-guest-ticket-entry",
+     "componentName": "container",
+     "originalElement": "div",
+     "classes": [
+      "flex",
+      "justify-center",
+      "w-full",
+      "px-4",
+      "pt-4"
+     ],
+     "children": [
+      {
+       "componentId": "Button-guest-ticket-entry",
+       "componentName": "Button",
+       "componentProps": {
+        "label": "{{ t('Submit a request without signing in') }}",
+        "variant": "outline",
+        "size": "md",
+        "iconLeft": "lucide-mail"
+       },
+       "componentEvents": {
+        "click": {
+         "action": "Run Script",
+         "event": "click",
+         "script": "router.push(routes.guestTicket)"
+        }
+       }
+      }
+     ]
+    },
+    {
      "blockName": "scroll-wrapper",
      "children": [
       {
@@ -628,7 +660,7 @@
  "frappe_app": "helpdesk",
  "idx": 0,
  "is_standard": 1,
- "modified": "2026-11-04 12:00:00.000000",
+ "modified": "2026-11-19 00:00:00.000000",
  "modified_by": "Administrator",
  "name": "public_kb",
  "owner": "Administrator",
