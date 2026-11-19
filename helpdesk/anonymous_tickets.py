@@ -67,7 +67,7 @@ def _validate_submission(
         "email": email,
         "full_name": full_name,
         "subject": subject,
-        # The guest form accepts plain text only; escape it before storing HTML.
+        # The guest form accepts plain text only; the ticket HTML is escaped at insert.
         "description": description + (f"\n\nSubmitted by: {full_name}" if full_name else ""),
         "office": office,
         "request_type": request_type,
@@ -158,7 +158,7 @@ def verify_guest_submission(token: str) -> dict:
             payload["email"],
             payload.get("full_name", ""),
             payload["subject"],
-            # Stored description is already escaped HTML. Do not escape it twice.
+            payload["description"],
             payload["description"],
             payload["office"],
             payload["request_type"],
