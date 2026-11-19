@@ -1,5 +1,5 @@
 <template>
-  <section class="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 py-8">
+  <section class="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 py-8">
     <div v-if="verified" class="rounded-lg border border-outline-gray-2 p-6">
       <h1 class="text-xl font-semibold text-ink-gray-9">
         {{ __('Request submitted') }}
