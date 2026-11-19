@@ -1,10 +1,10 @@
 # Anonymous ticket submission
 
-> Status: implementation in progress on `feat/anonymous-tickets`. This document records the current guest-submission boundary; verify behavior against a migrated test site before release.
+> Status: source implementation in progress on `feat/anonymous-tickets`, with a coordinated Frappe login-template branch. Backend, guest route exception, login CTA, and KB homepage cleanup are committed in source; verify behavior against a migrated test site before release.
 
 ## User experience
 
-- The intended entry point is a Helpdesk-origin-only link on the Frappe login page, leading to `/help/guest/new`. The earlier prominent homepage CTA is superseded; the login CTA and private-KB route exception are still planned, not implemented.
+- The entry point is a Helpdesk-origin-only link on the Frappe login page, leading to `/help/guest/new`. Helpdesk adds a `helpdesk_guest=1` marker only from `/help` routes; the Frappe login context requires that marker plus a same-origin `Referer` under `/help` before rendering the fixed local link. The earlier prominent homepage CTA has been removed.
 - A visitor submits an optional name, email address, office, request type, subject and plain-text description.
 - Attachments are intentionally unavailable in this first implementation. The existing upload path is authenticated and must not be opened to Guest.
 - The server emails a single-use verification link. No ticket is created before the email is verified.
@@ -46,7 +46,7 @@ The native portal ticket lifecycle skips acknowledgement email. After verified c
 - Inbound email reply ownership validation has not been established. Do not advertise inbound email replies as a supported anonymous-ticket feature until the inbound sender identity path is audited and tested.
 - Realtime customer notifications resolve Frappe User records; they do not provide delivery to email-only requesters. Do not claim that every status transition emails an anonymous requester.
 
-## Current guest-entry status\n\nThe guest Studio page and backend exist, but pilot testing found that private-KB Guest redirects prevent the route from being reached. The revised design places a secondary anonymous-request link beneath the login options only when login originated from Helpdesk. The route exception must be implemented in both `helpdesk/helpdesk/hooks/studio_app.py` and `studio/helpdesk/stores/session.ts`. The KB homepage must not show the anonymous CTA or authenticated-only ticket actions to Guests. See [the agent handoff](../current/HANDOFF.md) for the exact implementation and validation plan.\n\n## Remaining work before release
+## Current guest-entry status\n\nThe source changes now implement the revised flow:\n\n- `helpdesk/helpdesk/hooks/studio_app.py` sets `send_guest_to_login` false only for the exact `/help/guest/new` request path when the KB is private.\n- `studio/helpdesk/stores/session.ts` applies the same exact route exception to both its early boot redirect and its asynchronous session-load guard.\n- Helpdesk `loginUrl()` appends `helpdesk_guest=1` only when the current route belongs to `/help`.\n- The CBSUA Frappe fork's `frappe/www/login.py` validates the marker and a same-origin Helpdesk `Referer`; `frappe/www/login.html` renders a fixed `/help/guest/new` link beneath the login options. This framework change is isolated on `feat/anonymous-helpdesk-login-cta`.\n- `public_kb.json` no longer contains the top-level anonymous CTA. The empty-state authenticated ticket action group is gated by `canCreateTicket`, exposed from `useKnowledgeBaseHeader()`.\n\nThese are source-level changes only. The private/public KB browser matrix, Referer behavior, login variants, Studio production build, and Frappe tests have not yet been run. See [the agent handoff](../current/HANDOFF.md) for commits and remaining validation.\n\n## Remaining work before release
 
 1. Run `bench --site <site> run-tests --app helpdesk --module helpdesk.tests.test_anonymous_tickets` on a disposable Frappe v17-compatible bench and confirm the `extend_doctype_class` MRO on the deployed framework commit.
 2. Test the guest flow end-to-end with a real outbound email account: start, verify, duplicate verification, expiry, and acknowledgement delivery.
