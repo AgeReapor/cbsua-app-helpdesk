@@ -1568,7 +1568,7 @@ def _customer_query(user: str) -> str:
     if managed_customers:
         query += " OR " + _build_in_clause("customer", managed_customers)
     # Apply after all visibility branches so no customer query can reveal Guest tickets.
-    return f"({query}) AND (`tabHD Ticket`.owner != 'Guest')"
+    return "(" + query + ") AND (`tabHD Ticket`.owner != 'Guest')"
 
 
 def _agent_query(user: str) -> str | None:
