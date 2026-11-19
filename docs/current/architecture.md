@@ -199,3 +199,73 @@ The LUBUS `api-development`, `frontend-development`, `web-forms`, `doctype-devel
 - [ ] Exact guest-safe office/request-type API behavior and whether those APIs are intentionally public.
 - [ ] Upload API permissions and private file lifecycle.
 - [ ] Current tests covering portal ticket creation, customer visibility, notifications and email replies.
+
+
+## 7. Detailed ticket lifecycle findings from the Phase 0 trace
+
+The following behavior was verified in the current feature branch's tracked source. It narrows the design but does not yet complete the audit of outbound/inbound email processing.
+
+### Ticket creation API
+
+Source: `helpdesk/helpdesk/doctype/hd_ticket/api.py`, function `new`.
+
+- Decorated with `@frappe.whitelist()` and no `allow_guest=True`.
+- Existing rate limit is 300 requests per 60 seconds, user-based. This is an authenticated-user-oriented limit and is not an appropriate anonymous abuse control.
+- It accepts a document dictionary, attachment File references, and optional portal origin.
+- It sets `doctype = "HD Ticket"`, `via_customer_portal` from the session, and `raised_by` from `frappe.session.user`.
+- It inserts the native document and strips hidden fields for the response.
+
+**Design consequence:** leave this method authenticated. Add a separate guest-only submission entry point rather than widening the existing method's trust boundary. The guest entry point should not accept arbitrary DocType fields or arbitrary File names.
+
+### HD Ticket controller lifecycle
+
+Source: `helpdesk/helpdesk/doctype/hd_ticket/hd_ticket.py`.
+
+- `before_validate` calls `set_raised_by`, `validate_portal_contact`, `set_contact`, `set_customer`, and ticket-origin handling.
+- `set_raised_by` falls back to `frappe.session.user` only when the field is empty.
+- `set_contact` attempts to find a Contact whose `email_id` matches the email parsed from `raised_by`.
+- `validate_portal_contact` restricts non-agent users from attributing a ticket to another Contact. A guest flow must not accept a client-selected Contact or impersonate an existing Contact owner.
+- `set_customer` may derive an HD Customer from the matched Contact when the setting `auto_set_customer_from_contact` is enabled.
+- `after_insert` creates a Communication from the description and sends the acknowledgement email only when `via_customer_portal` is false (and acknowledgement is enabled). The existing portal form therefore does not rely on that acknowledgement path.
+- The controller generates a UUID `key`; inspect every use before treating it as a guest access credential. It is currently also used by email feedback flow.
+
+**Design consequence:** a verified external email can potentially be represented by the existing `raised_by` field, but Contact/customer auto-association must be explicitly constrained. Do not attach an anonymous ticket to a Contact merely because the submitted email string matches a record linked to a different user. Preserve the native lifecycle and add only the smallest safe integration needed.
+
+### CBSUA office routing
+
+Source: `helpdesk/setup/office_routing.py`, registered from `helpdesk/hooks.py` as HD Ticket `before_validate` and `validate` events.
+
+- `set_ticket_defaults` supplies a default office.
+- It supplies a default request type for tickets where `via_customer_portal` is false.
+- `validate_ticket_office_routing` requires a valid enabled office and request type for new tickets.
+- The request type can supply the default team, with team-to-office consistency checked.
+- Non-privileged users cannot select a team not mapped to the selected office.
+
+**Design consequence:** guest tickets need the same required office/request-type values and validation as customer-portal tickets. The guest service must set the server-controlled portal-origin flag deliberately and must not trust a submitted team or agent. Confirm how this flag interacts with all existing controller behavior before choosing its exact value.
+
+### Existing frontend form
+
+Source: `studio/helpdesk/studio_page/new_ticket/new_ticket.json`, its TypeScript setup, and `studio/helpdesk/components/ticket/NewTicketForm.vue`.
+
+- The page is not guest-enabled.
+- The form loads the ticket template and dynamic fields.
+- The CBSUA form additionally loads offices and request types.
+- It uses authenticated file upload and then passes File names to the ticket creation API.
+- It calls the existing authenticated API directly.
+
+**Design consequence:** reuse the visual/form conventions and office/request-type interaction, but do not assume the current upload flow works for guests. For the first MVP, excluding attachments is safer than weakening generic upload permissions. If attachments are required in the first release, design a guest-scoped upload lifecycle with ownership, expiry, size/type restrictions, and safe association after verification.
+
+### Email communication status
+
+The controller's agent reply method defaults its recipient to `raised_by`, creates a linked Communication, and can send a threaded email through the configured outgoing account. Its email body/template path is aware of `via_customer_portal`.
+
+The initial trace has **not yet established** all of the following:
+
+- whether inbound email replies are enabled and how they identify the ticket;
+- how sender addresses are validated against the ticket requester;
+- which inbound messages become public Communications versus internal comments;
+- which status-change notifications are sent to external requester addresses;
+- whether every outbound template is safe for an anonymous external requester.
+
+These are open Phase 0 items. Do not claim inbound email replies are supported for anonymous tickets until they are verified end-to-end.
+
