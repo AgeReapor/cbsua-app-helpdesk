@@ -4,7 +4,7 @@
 > **Workstream:** Anonymous / guest ticket submission  
 > **Primary repository:** [AgeReapor/cbsua-app-helpdesk](https://github.com/AgeReapor/cbsua-app-helpdesk)  
 > **Working branch:** `feat/anonymous-tickets`  
-> **Status:** Backend and guest Studio form are implemented in source; guest entry/navigation redesign and runtime validation remain unfinished. **Do not treat this branch or feature as production-ready.**
+> **Status:** Backend, guest Studio form, exact private-KB route exception, Helpdesk-origin login CTA, and KB homepage cleanup are implemented in source across Helpdesk and Frappe feature branches. Runtime/browser/security/build validation remains outstanding. **Do not treat this feature as production-ready.**
 
 This is the operational handoff for the next engineer or coding agent. Read it together with [Current Architecture](architecture.md), [Current Project Context](README.md), and the [Anonymous Ticket Submission feature guide](../features/anonymous-ticket-submission.md). The source code and deployment lock take precedence over this document whenever they disagree.
 
@@ -153,7 +153,7 @@ Do not confuse the canonical authenticated new-ticket route with `/help/tickets/
 
 ## 4. Known guest-access defect and exact intended policy
 
-### Root cause observed in source
+### Root cause and source-level fix
 
 The Studio page's `allow_guest: 1` is not enough to make the page reachable when the private-KB redirects execute earlier.
 
@@ -175,7 +175,7 @@ The observed pilot behavior is that direct guest access to `/help/guest/new` is 
 | Public | `/help` | Browse public KB; no authenticated-only ticket actions | Browse KB and retain normal ticket actions |
 | Public | `/help/guest/new` | Allow guest submission | Preserve page behavior |
 
-Implement the exception narrowly in **both** boot-time and Studio session guards. Normalize the path only as required (for example, a trailing slash), but do not use a broad `startsWith('/help/guest')` or disable the private-KB redirect globally. Do not expose private KB content, ticket reads, or authenticated ticket creation.
+Implemented in both boot-time and Studio session guards. The boot hook compares the request path to the exact `/help/guest/new` route after trimming trailing slashes. The session store applies the same exact path predicate to both its early boot redirect and asynchronous session-load redirect. `?verify=...` does not affect `location.pathname`. Do not broaden this to `/help/guest/*`. Normalize the path only as required (for example, a trailing slash), but do not use a broad `startsWith('/help/guest')` or disable the private-KB redirect globally. Do not expose private KB content, ticket reads, or authenticated ticket creation.
 
 ---
 
@@ -183,7 +183,7 @@ Implement the exception narrowly in **both** boot-time and Studio session guards
 
 This UI/navigation slice is **not implemented yet**. Work on the existing feature branch after verifying its current head.
 
-### Task A — route-specific redirect exception (Helpdesk repository)
+### Task A — route-specific redirect exception (implemented in Helpdesk source)
 
 Files:
 
@@ -198,9 +198,13 @@ Implementation requirements:
 4. Keep `isGuest` and `canCreateTicket` semantics unchanged. A Guest remains a Guest.
 5. Test direct navigation, refresh, trailing slash, query string `?verify=...`, and client-side navigation. The verification query must not cause the route to be treated as a different path.
 
-### Task B — login CTA (framework integration decision)
+### Task B — login CTA (implemented across Helpdesk and Frappe source)
 
-First inspect:
+Source implementation: Helpdesk `loginUrl()` stores the existing `last_visited` path and adds `helpdesk_guest=1` only when navigation originated from `/help` or a `/help/...` path. The Frappe login context additionally requires that marker and a same-origin `Referer` whose path is `/help` or beneath it. The template renders a fixed `/help/guest/new` link beneath the login options. This is a navigation affordance, not authorization.
+
+The Frappe change is isolated on `feat/anonymous-helpdesk-login-cta`; the deployment lock remains unchanged. The inspected deployment lock records Frappe commit `0c68cdeff2e64d0fe0be84568b515531e2b506a8`; `develop` was one commit ahead of that lock at inspection time, so the feature branch is based on the current `develop` and must be reconciled with the intended deployment source before release.
+
+Original investigation files:
 
 - Helpdesk's `loginUrl()` in `studio/helpdesk/stores/session.ts`. It stores `location.pathname + location.search` in localStorage key `last_visited` and returns `/login`.
 - Framework login template: `cbsua-app-frappe/frappe/www/login.html`. Its `email_login_body()` macro renders the existing Continue and Login with Email Link options and is reused by the login page's main and social-login subviews.
@@ -217,7 +221,7 @@ Requirements:
 
 Potential ownership: Helpdesk should own the origin marker and guest destination; the framework fork should change only the shared login template/context if there is no clean app-level extension. Verify exact Frappe framework commit compatibility and document the framework patch rationale.
 
-### Task C — KB homepage actions (Helpdesk repository)
+### Task C — KB homepage actions (implemented in Helpdesk source)
 
 Files:
 
@@ -225,7 +229,7 @@ Files:
 - `studio/helpdesk/studio_page/public_kb/public_kb.ts`
 - `studio/helpdesk/composables/useKnowledgeBaseHeader.ts`
 
-Current source inspection found:
+Implemented source changes:
 
 - A top-level `guest-request-entry` block in `public_kb.json` adds the anonymous CTA before the KB content.
 - The empty-KB state has `Raise a ticket` and `View my tickets` buttons without a Guest visibility condition.
@@ -233,14 +237,14 @@ Current source inspection found:
 
 Requirements:
 
-1. Remove the top-level anonymous CTA block.
-2. Hide the empty-state authenticated action group for Guests, using the actual session state/capability exposed by the page setup. Verify the exact Studio binding name before editing; do not invent a variable.
-3. Preserve authenticated actions and normal header behavior.
-4. Do not add a replacement anonymous CTA to the KB homepage.
+1. Removed the top-level `guest-request-entry` block.
+2. Exposed `session.canCreateTicket` through `useKnowledgeBaseHeader()` and applied `visibilityCondition: {{ canCreateTicket }}` to the empty-state action group. The underlying session capability remains false for Guests.
+3. Authenticated actions and the existing header behavior are preserved.
+4. No replacement anonymous CTA was added to the KB homepage.
 
 ### Task D — update feature and current docs
 
-After implementation, update:
+Source implementation has been made. Documentation updates record source status separately from runtime validation:
 
 - `docs/features/anonymous-ticket-submission.md`
 - `docs/current/README.md`
@@ -273,7 +277,7 @@ Clearly distinguish implementation from tested behavior. Update the deployment n
 
 ## 7. Validation plan and release gates
 
-No Frappe bench/site, real outgoing mail account, Studio production build, or Semgrep run was available during the source-inspection handoff. The focused test file exists but **has not been executed here**. Treat all checks below as outstanding until an agent records actual output.
+No Frappe bench/site, browser session, real outgoing mail account, Studio production build, or Semgrep run was available during this implementation. The focused test file exists but **has not been executed here**. Source changes are committed to the feature branches, but every runtime, integration, build, and security check below remains outstanding.
 
 ### A. Environment and source lock
 
@@ -353,10 +357,10 @@ Do not call the feature complete until all are true:
 
 1. **Orient and verify:** read this handoff, `docs/current/README.md`, `docs/current/architecture.md`, and the feature guide. Fetch the current branch head; do not assume the SHAs in an old chat are still current. Inspect the current source before editing.
 2. **Build a disposable runtime:** confirm exact Frappe/Helpdesk/Telephony refs and get the existing focused tests running. This catches pre-existing API/version issues before adding more UI work.
-3. **Fix the route exception:** implement and test the exact Guest route exemption in both boot and Studio guards.
-4. **Trace login context:** inspect framework login routing and `last_visited`; choose and document a safe Helpdesk-origin marker.
-5. **Implement the login CTA:** make the minimal shared framework template/context change only if required; ensure unrelated login flows are unaffected.
-6. **Clean the KB homepage:** remove the top CTA and hide authenticated-only empty-state actions for Guest.
+3. **Validate the route exception:** test the exact Guest route exemption in both boot and Studio guards on a running private-KB site.
+4. **Validate login context:** exercise the marker and same-origin Referer checks in a browser; ensure unrelated login flows do not show the CTA.
+5. **Validate the login CTA:** test password, email-link, LDAP/social login template states and confirm the fixed local destination.
+6. **Validate the KB homepage:** confirm the top CTA is absent and authenticated-only empty-state actions are hidden for Guest but remain available to authenticated users.
 7. **Add integration/browser tests:** cover route matrix, login origin, privacy, transaction, email and authenticated regressions.
 8. **Run build/security/migration checks:** record exact commands and output, including unique-index migration result.
 9. **Reconcile docs and deployment:** update feature/current docs; inspect deployment source lock and prepare a separate coordinated release change only when authorized.
@@ -410,17 +414,18 @@ The receiving agent should replace/update this section at the next handoff:
 
 - **Date / agent:**
 - **Branch:**
-- **Latest commit SHA:**
-- **Repositories changed:**
+- **Latest commit SHAs:** Helpdesk `047aa07093917c0ecf43cf27000be79ac7fd3ccd`; Frappe `5ae23fcaa85436fb818f2716eafb543bee2849ae` (branch `feat/anonymous-helpdesk-login-cta`)
+- **Repositories changed:** `AgeReapor/cbsua-app-helpdesk` (`feat/anonymous-tickets`), `AgeReapor/cbsua-app-frappe` (`feat/anonymous-helpdesk-login-cta`)
+- **Source changes:** exact `/help/guest/new` bypass in both guards; marker + same-origin Referer-gated login CTA; removed KB top CTA; Guest-hidden empty-state actions via `canCreateTicket`.
 - **Summary of implementation:**
 - **Files changed:**
-- **Tests run (exact commands):**
-- **Build / lint / Semgrep results:**
+- **Tests run (exact commands):** None; no local checkout/bench/browser is available through the current repository connector.
+- **Build / lint / Semgrep results:** Not run.
 - **Migration / unique-index result:**
 - **Email verification evidence:**
 - **Browser route matrix result:**
-- **Known defects / risks:**
-- **Deployment source-lock status:**
+- **Known defects / risks:** Source-level changes have not been runtime-verified; login CTA depends on same-origin Referer being sent by the browser; verify deployed framework compatibility and Studio binding behavior.
+- **Deployment source-lock status:** Unchanged. The lock still pins Frappe `0c68cdeff2e64d0fe0be84568b515531e2b506a8` and Helpdesk `98838938409bbeb038717667ac7880dd5b5edd6f`; neither feature branch is promoted.
 - **Next concrete action:**
 
 **Final caution:** Source inspection and documentation commits are not runtime validation. Keep the feature marked in progress until the acceptance criteria above have real test evidence.
