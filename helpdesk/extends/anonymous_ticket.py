@@ -61,7 +61,10 @@ class AnonymousHDTicketMixin:
                 communication,
                 {
                     "sender": self.raised_by,
-                    "sender_full_name": self.raised_by,
+                    "sender_full_name": (
+                        getattr(self.flags, "anonymous_requester_name", None)
+                        or self.raised_by
+                    ),
                 },
                 update_modified=False,
             )
