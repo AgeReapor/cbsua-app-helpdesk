@@ -344,3 +344,49 @@ The server inserts the native ticket through the existing controller with a narr
 - Inbound email Message-ID/References threading exists, but sender-address ownership validation has not been confirmed. Anonymous inbound replies remain unsupported until audited and tested.
 - The focused test module covers token digest/cache-key behavior, deterministic ticket keys, the unique-key DocType metadata, Guest and matching-email-user read isolation, server-owned anonymous insert flags, input normalization, invalid email, office/request-type consistency, malformed verification tokens and field values, and content limits. It does not yet exercise the full verification transaction, token expiry/replay, concurrent requests, Contact-collision insertion, outbound email privacy, or authenticated regressions. Run `bench --site <site> run-tests --app helpdesk --module helpdesk.tests.test_anonymous_tickets` on a disposable Frappe v17-compatible site, then add those integration tests.
 - The current environment did not run a Frappe bench, Studio build, Semgrep, or real email delivery. Source inspection alone is not release validation.
+
+
+## 9. Guest entry point and private knowledge-base routing — revised 2026-11-19
+
+### Observed pilot behavior
+
+The guest Studio page is configured with `allow_guest: 1` and is registered at `/help/guest/new`, but pilot visitors are redirected to the Frappe login page when the knowledge base is private. The route metadata is therefore not sufficient to establish reachability: the application applies a global Guest-to-login policy before the page can be used.
+
+Two relevant guards were identified:
+
+- `helpdesk/helpdesk/hooks/studio_app.py` computes the boot setting `send_guest_to_login` for a Guest when `HD Settings.public_knowledge_base` is false.
+- `studio/helpdesk/stores/session.ts` implements `sendGuestToLogin()`, which calls `signIn()` for a Guest whenever the public knowledge base is disabled.
+
+The two layers must be considered together. Changing only the Studio page's `allow_guest` metadata or only one guard can leave the route inaccessible.
+
+### Intended access policy
+
+| Route / state | Guest | Authenticated user |
+|---|---|---|
+| Private KB: `/help` | Redirect to login | Existing portal behavior |
+| Private KB: `/help/guest/new` | Allow guest submission | Allow according to page behavior |
+| Private KB: `/help/my-tickets` | Keep protected / redirect to login | Allow |
+| Private KB: `/help/tickets/new` | Keep protected / redirect to login | Allow |
+| Public KB: `/help` | Browse KB; no authenticated ticket actions | Browse KB and retain ticket actions |
+| Public KB: `/help/guest/new` | Allow guest submission | Allow according to page behavior |
+
+The exception must be exact to the guest submission route. Do not turn off the private-KB redirect globally, and do not grant Guest read access to tickets or private articles.
+
+### Login screen entry point
+
+The proposed guest link belongs beneath the existing `Continue` and `Login with Email Link` actions on the Frappe login page, but only when login was initiated from the Helpdesk portal. The login page is shared by all Frappe apps, so an unconditional Helpdesk CTA is incorrect.
+
+The next implementation must inspect how Helpdesk redirects to login and how query parameters/context are preserved. Use a Helpdesk-origin marker or an existing supported return-path mechanism, validate it narrowly, and show the CTA only for the Helpdesk login flow. The CTA itself navigates to `/help/guest/new`; it is not an authorization mechanism.
+
+### Homepage action policy
+
+Remove the current prominent anonymous-request action from the top of the public knowledge-base homepage. Guests viewing a public KB must not see authenticated-only `Raise a ticket` or `View my tickets` actions in the empty state. Authenticated users retain their normal actions. Preserve existing session capability flags rather than redefining Guests as authenticated.
+
+### Cross-repository implementation boundary
+
+- Helpdesk owns the route-specific guest access exception, Studio session guard, homepage conditional rendering and guest submission page.
+- The framework fork may own a conditional login-template link if there is no supported Helpdesk-specific login extension point. Any such change must be gated by Helpdesk-origin context to avoid changing unrelated login experiences.
+- The UI library has no identified responsibility for this change.
+- The deployment repository owns source locks and pilot release integration.
+
+This section records the intended design and inspected cause. It does **not** claim that the routing or login-screen changes have been implemented.
