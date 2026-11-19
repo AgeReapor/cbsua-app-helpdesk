@@ -59,8 +59,10 @@ class AnonymousHDTicketMixin:
             frappe.db.set_value(
                 "Communication",
                 communication,
-                "sender",
-                self.raised_by,
+                {
+                    "sender": self.raised_by,
+                    "sender_full_name": self.raised_by,
+                },
                 update_modified=False,
             )
         return result
