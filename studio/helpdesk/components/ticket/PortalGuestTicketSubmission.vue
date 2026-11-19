@@ -245,6 +245,9 @@ onMounted(async () => {
     const result = await call('helpdesk.anonymous_tickets.get_guest_form_options')
     offices.value = result.offices || []
     requestTypes.value = result.request_types || []
+    if (!offices.value.length) {
+      optionsError.value = __('No offices are currently available. Please contact the helpdesk.')
+    }
     form.office =
       offices.value.find((row) => row.is_default)?.name ||
       offices.value[0]?.name ||
