@@ -167,10 +167,7 @@ def verify_guest_submission(token: str) -> dict:
             payload["request_type"],
         )
 
-        description = payload["description"]
-        if payload["full_name"]:
-            description += "\n\nSubmitted by: " + payload["full_name"]
-        description_html = html.escape(description).replace("\n", "<br>")
+        description_html = html.escape(payload["description"]).replace("\n", "<br>")
 
         ticket = frappe.get_doc(
             {
@@ -184,6 +181,7 @@ def verify_guest_submission(token: str) -> dict:
             }
         )
         ticket.flags.anonymous_submission = True
+        ticket.flags.anonymous_requester_name = payload["full_name"]
         ticket.flags.anonymous_ticket_key = key
         # This is a narrow server-side insert. Guest receives no DocType permission.
         ticket.insert(ignore_permissions=True)
