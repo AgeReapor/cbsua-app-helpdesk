@@ -166,6 +166,7 @@ doc_events = {
     "HD Ticket": {
         "before_validate": "helpdesk.setup.office_routing.set_ticket_defaults",
         "validate": "helpdesk.setup.office_routing.validate_ticket_office_routing",
+        "on_update": "helpdesk.anonymous_tickets.notify_anonymous_requester_status",
     },
 }
 
