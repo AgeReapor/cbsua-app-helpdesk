@@ -67,9 +67,12 @@ def _validate_submission(
             frappe.ValidationError,
         )
     if any(ord(character) < 32 for character in full_name):
-        frappe.throw(_("Name contains unsupported control characters."), frappe.ValidationError)
+        frappe.throw(
+            _("Name contains unsupported control characters."),
+            frappe.ValidationError,
+        )
     if any(
-        ord(character) < 32 and character not in "\\n\\r\\t"
+        ord(character) < 32 and character not in "\n\r\t"
         for character in description
     ):
         frappe.throw(
