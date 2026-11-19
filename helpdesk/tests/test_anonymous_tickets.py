@@ -6,6 +6,8 @@ from uuid import UUID
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
+from helpdesk.helpdesk.doctype.hd_ticket.hd_ticket import has_permission, permission_query
+from helpdesk.test_utils import create_user, unique_email
 from helpdesk.anonymous_tickets import (
     _cache_key,
     _ticket_key,
@@ -31,6 +33,24 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         self.assertEqual(key, _ticket_key(digest))
         self.assertIsInstance(UUID(key), UUID)
         self.assertNotEqual(key, _ticket_key(_token_digest("another-token")))
+
+    def test_guest_owned_ticket_is_not_readable_by_guest_or_matching_email_user(self):
+        email = unique_email("anonymous-requester")
+        create_user(email)
+        ticket = frappe._dict(
+            {
+                "owner": "Guest",
+                "raised_by": email,
+                "contact": None,
+                "customer": None,
+                "agent_group": None,
+                "_assign": None,
+            }
+        )
+
+        self.assertFalse(has_permission(ticket, "Guest"))
+        self.assertFalse(has_permission(ticket, email))
+        self.assertEqual(permission_query("Guest"), "1=0")
 
     def test_submission_normalizes_email_and_trims_text(self):
         with patch("helpdesk.anonymous_tickets.frappe.db.exists", return_value=True):
