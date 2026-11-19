@@ -1,6 +1,7 @@
 import frappe
 from frappe.tests import IntegrationTestCase
 
+from helpdesk.helpdesk.doctype.hd_ticket.hd_ticket import has_permission, permission_query
 from helpdesk.anonymous_tickets import (
     _ticket_key,
     _token_digest,
@@ -44,3 +45,14 @@ class TestAnonymousTicketSubmission(IntegrationTestCase):
                 "missing-office",
                 "missing-request-type",
             )
+
+    def test_guest_cannot_read_or_list_tickets_even_when_guest_owns_them(self):
+        ticket = frappe._dict(
+            owner="Guest",
+            contact=None,
+            raised_by="visitor@example.com",
+            customer=None,
+        )
+
+        self.assertFalse(has_permission(ticket, "Guest"))
+        self.assertEqual(permission_query("Guest"), "1=0")
