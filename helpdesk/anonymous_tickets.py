@@ -195,7 +195,8 @@ def verify_guest_submission(token: str) -> dict:
             and frappe.db.get_single_value("HD Settings", "send_acknowledgement_email")
         ):
             ticket.send_acknowledgement_email()
-        frappe.cache.delete_value(cache_key)
+        # Keep the pending payload retryable if the surrounding DB transaction rolls back.
+        frappe.db.after_commit.add(lambda: frappe.cache.delete_value(cache_key))
         return {"success": True, "ticket": ticket.name}
 
 
