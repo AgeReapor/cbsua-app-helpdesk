@@ -414,7 +414,7 @@ The receiving agent should replace/update this section at the next handoff:
 
 - **Date / agent:**
 - **Branch:**
-- **Latest commit SHAs:** Helpdesk `1ff9f254473bdb258af479a77511076cfcf064a9`; Frappe `5ae23fcaa85436fb818f2716eafb543bee2849ae` (branch `feat/anonymous-helpdesk-login-cta`)
+- **Latest implementation commit SHAs:** Helpdesk `1ff9f254473bdb258af479a77511076cfcf064a9`; Frappe `5ae23fcaa85436fb818f2716eafb543bee2849ae` (branch `feat/anonymous-helpdesk-login-cta`). Latest Helpdesk documentation commit before this handoff refresh: `c1bc9e4577096ba01fb8b62eac51aab72d2957a0`.
 - **Repositories changed:** `AgeReapor/cbsua-app-helpdesk` (`feat/anonymous-tickets`), `AgeReapor/cbsua-app-frappe` (`feat/anonymous-helpdesk-login-cta`)
 - **Source changes:** exact `/help/guest/new` bypass in both guards; marker + same-origin Referer-gated login CTA; removed KB top CTA; Guest-hidden empty-state actions via `canCreateTicket`.
 - **Summary of implementation:**
