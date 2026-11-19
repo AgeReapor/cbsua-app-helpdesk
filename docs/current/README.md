@@ -120,15 +120,15 @@ This roadmap is the working status tracker for the anonymous-ticket workstream. 
 
 Initial inspection has confirmed the framework/UI dependency roles, the Studio-based customer portal, the existing authenticated ticket form/API assumptions, and the current `frappe-ui` submodule URL discrepancy. See [Current Architecture and Repository Boundaries](architecture.md). The following checklist tracks the remaining verification; do not begin implementation until the required design decisions are resolved:
 
-- [ ] Locate the existing `/help` route and determine whether it is rendered by Vue/Frappe UI or website templates.
-- [ ] Identify the existing authenticated ticket-submission flow and reuse its validated fields and UX conventions.
-- [ ] Inspect the `HD Ticket` DocType schema, controller validations, requester fields, and creation lifecycle.
-- [ ] Trace how Helpdesk associates tickets with users and email addresses.
-- [ ] Trace outbound email templates, notifications, public replies, private comments, and attachment handling.
-- [ ] Trace inbound email processing and whether replies can be safely associated with anonymous tickets.
-- [ ] Identify existing hooks and supported extension points; avoid monkey-patching and wholesale component copies.
-- [ ] Decide whether verification state needs a dedicated DocType or can be handled by an existing suitable mechanism.
-- [ ] Define the guest API contract, allowed fields, response shape, CSRF/method requirements, rate limiting, and idempotency behavior.
+- [x] Locate the existing `/help` route: it is the Helpdesk Studio App rendered by Frappe Studio, not a standalone SPA or generic Web Form.
+- [x] Identify the authenticated submission flow: Studio `new_ticket` page and `NewTicketForm.vue`; retain its conventions without exposing its authenticated API.
+- [x] Inspect the `HD Ticket` requester field and initial controller lifecycle. **Open blocker:** Contact auto-association can reject or incorrectly associate anonymous submissions; see architecture.md.
+- [x] Trace requester email, Contact/customer association, and ticket permission behavior at controller level; end-to-end account/email identity behavior still requires tests.
+- [ ] Complete outbound email audit: acknowledgement is skipped for portal-origin tickets; agent replies can email `raised_by`; realtime customer notifications resolve Frappe Users and do not notify email-only requesters. Verify every template and event.
+- [ ] Complete inbound email trust audit: Message-ID/References thread stitching exists, but sender-address ownership validation has not been established.
+- [ ] Confirm a supported `HD Ticket` extension mechanism for skipping authenticated Contact/customer auto-association only on verified anonymous submissions.
+- [ ] Decide verification persistence and idempotency model, including safe storage/expiry of the pending submission payload.
+- [ ] Define the guest API contract, allowed fields, response shape, POST/method requirements, IP/email-based rate limiting, and idempotency behavior.
 - [ ] Define tests for guest isolation, invalid input, token expiry/replay, concurrent verification, notification privacy, and authenticated regression.
 - [ ] Record the confirmed implementation file paths and ownership boundary in this folder.
 
