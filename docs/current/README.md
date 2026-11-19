@@ -37,6 +37,18 @@ This is a planned documentation and integration lifecycle, **not a claim that up
 7. Link to durable documents elsewhere in `docs/` rather than duplicating their full contents here.
 8. Before handing work off, record the current branch, commit/PR state, changed areas, validation performed, known gaps, and the next actionable task.
 
+## Architecture orientation
+
+Before working on the portal or guest submission, read [Current Architecture and Repository Boundaries](architecture.md). It records the actual multi-repository dependency model and the Studio portal implementation.
+
+In particular:
+
+- `cbsua-app-frappe` supplies the Frappe Framework runtime, including the Studio app/runtime.
+- `cbsua-app-frappe-ui` supplies the Vue UI library used by the Helpdesk frontend and is intended to be consumed as a submodule/source dependency; verify the actual submodule URL and gitlink SHA.
+- `cbsua-app-helpdesk` contains the Helpdesk backend, agent Desk frontend, and exported Studio customer portal source.
+- The customer portal at `/help` is the Helpdesk Studio App, not a separate standalone Vue SPA/router or a generic Frappe Web Form.
+- The guest ticket feature must add a guest-accessible Studio page and a dedicated backend service while leaving the existing authenticated Studio ticket page and API assumptions intact.
+
 ## Current project direction
 
 The current architectural direction is to reduce long-term divergence from upstream Frappe Helpdesk and favor extension/configuration over maintaining a branded fork.
