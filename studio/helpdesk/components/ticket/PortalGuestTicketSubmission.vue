@@ -301,7 +301,7 @@ async function verify() {
 }
 
 async function submit() {
-  if (!canSubmit.value || submitting.value) return
+  if (!canSubmit.value || submitting.value || sent.value) return
 
   submitting.value = true
   error.value = ''
