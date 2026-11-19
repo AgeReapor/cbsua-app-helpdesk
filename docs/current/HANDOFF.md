@@ -414,7 +414,7 @@ The receiving agent should replace/update this section at the next handoff:
 
 - **Date / agent:**
 - **Branch:**
-- **Latest commit SHAs:** Helpdesk `047aa07093917c0ecf43cf27000be79ac7fd3ccd`; Frappe `5ae23fcaa85436fb818f2716eafb543bee2849ae` (branch `feat/anonymous-helpdesk-login-cta`)
+- **Latest commit SHAs:** Helpdesk `1ff9f254473bdb258af479a77511076cfcf064a9`; Frappe `5ae23fcaa85436fb818f2716eafb543bee2849ae` (branch `feat/anonymous-helpdesk-login-cta`)
 - **Repositories changed:** `AgeReapor/cbsua-app-helpdesk` (`feat/anonymous-tickets`), `AgeReapor/cbsua-app-frappe` (`feat/anonymous-helpdesk-login-cta`)
 - **Source changes:** exact `/help/guest/new` bypass in both guards; marker + same-origin Referer-gated login CTA; removed KB top CTA; Guest-hidden empty-state actions via `canCreateTicket`.
 - **Summary of implementation:**
@@ -424,7 +424,7 @@ The receiving agent should replace/update this section at the next handoff:
 - **Migration / unique-index result:**
 - **Email verification evidence:**
 - **Browser route matrix result:**
-- **Known defects / risks:** Source-level changes have not been runtime-verified; login CTA depends on same-origin Referer being sent by the browser; verify deployed framework compatibility and Studio binding behavior.
+- **Known defects / risks:** Source-level changes have not been runtime-verified; login CTA depends on same-origin Referer being sent by the browser; verify deployed framework compatibility and Studio binding behavior. The route trailing-slash normalizer uses a forward-slash-only regular expression.
 - **Deployment source-lock status:** Unchanged. The lock still pins Frappe `0c68cdeff2e64d0fe0be84568b515531e2b506a8` and Helpdesk `98838938409bbeb038717667ac7880dd5b5edd6f`; neither feature branch is promoted.
 - **Next concrete action:**
 
