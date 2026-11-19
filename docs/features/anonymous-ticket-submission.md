@@ -56,6 +56,10 @@ The native portal ticket lifecycle skips acknowledgement email. After verified c
 6. Run Frappe Semgrep on changed Python files and the Studio production build; inspect the public page as Guest and as an authenticated user. The focused helper tests are in `helpdesk/tests/test_anonymous_tickets.py`; they do not replace end-to-end verification/replay/Contact-collision tests.
 7. Decide whether to add CAPTCHA or additional deployment-level abuse controls based on observed traffic. IP rate limiting is the current MVP baseline.
 
+## Deployment integration
+
+The deployment repository currently documents `develop` as the canonical CBSUA Helpdesk build branch. This feature branch is therefore not included in the standard deployment image until it is merged or otherwise integrated into the configured build ref. Keep release/source-ref changes in `cbsua-app-helpdesk-deployment`; do not change deployment refs as part of this feature implementation without a coordinated release decision.
+
 ## Current limitations
 
 - No attachments on guest submissions.
