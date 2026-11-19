@@ -14,6 +14,9 @@ from helpdesk.anonymous_tickets import (
 
 
 class TestAnonymousTicketSubmission(IntegrationTestCase):
+    def test_native_ticket_key_is_unique_for_idempotent_creation(self):
+        self.assertTrue(frappe.get_meta("HD Ticket").get_field("key").unique)
+
     def test_token_digest_is_stable_and_does_not_expose_the_token(self):
         token = "a-long-random-verification-token"
         digest = _token_digest(token)
