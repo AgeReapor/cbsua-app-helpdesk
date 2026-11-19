@@ -233,7 +233,8 @@ def notify_anonymous_requester_status(doc, method=None) -> None:
         f"<p><strong>{_('Status')}:</strong> {html.escape(status_label or '')}</p>"
     )
     try:
-        if not doc.sender_email():
+        sender_email = doc.sender_email()
+        if not sender_email:
             return
         last_communication = doc._last_threadable_communication()
         in_reply_to = (
@@ -243,6 +244,7 @@ def notify_anonymous_requester_status(doc, method=None) -> None:
         )
         frappe.sendmail(
             recipients=[doc.raised_by],
+            sender=sender_email.email_id,
             subject=_("Ticket #{0}: status update").format(doc.name),
             message=message,
             reference_doctype="HD Ticket",
