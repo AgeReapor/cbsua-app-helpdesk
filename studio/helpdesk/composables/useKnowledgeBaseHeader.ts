@@ -75,6 +75,8 @@ export function useKnowledgeBaseHeader(context) {
   }
   return {
     ...useSettingsModal(context),
+    // Empty-state ticket actions must remain unavailable to Guests.
+    canCreateTicket: session.canCreateTicket,
     customActions,
     headerLinks,
     accountMenuOptions: menuOptions,
