@@ -10,6 +10,7 @@ export const ROUTES = {
   category: (name: string) => `/category/${name}`,
   ticketList: '/my-tickets',
   newTicket: (origin?: TicketOrigin) => ({ path: '/my-tickets/new', query: originQuery(origin) }),
+  guestTicket: '/guest/new',
   ticket: (name: string) => `/my-tickets/${name}`,
   appRoot: CUSTOMER_PORTAL_ROOT,
 }
