@@ -4,7 +4,7 @@
       <h1 class="text-xl font-semibold text-ink-gray-9">{{ __('Request submitted') }}</h1>
       <p class="mt-2 text-ink-gray-6">{{ __('Your email address is verified. Your request has been recorded.') }}</p>
       <p v-if="ticketName" class="mt-3 font-medium">{{ __('Ticket reference: {0}', [ticketName]) }}</p>
-      <p class="mt-2 text-sm text-ink-gray-6">{{ __('Agent replies and ticket status changes will be sent to your email address.') }}</p>
+      <p class="mt-2 text-sm text-ink-gray-6">{{ __('Agent replies and ticket status changes can be sent to your email address when Helpdesk email delivery is enabled.') }}</p>
     </div>
 
     <div v-else-if="verificationToken && !verificationError" class="rounded-lg border border-outline-gray-2 p-6">
