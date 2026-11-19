@@ -308,14 +308,9 @@ The `set_contact()` method looks up a Contact by the email in `raised_by` and as
 
 This is a real lifecycle interaction, not merely a theoretical concern.
 
-**Required design decision before implementation:** anonymous submissions must not silently impersonate or inherit an existing Contact/HD Customer relationship based only on a matching email address. The guest flow should explicitly preserve an external requester identity and avoid automatic Contact/customer association unless the requester separately proves an authorized account relationship.
+**Resolution in the current implementation:** the guest submission service sets a transient server-side `anonymous_submission` flag only after email verification. The registered `AnonymousHDTicketMixin` skips Contact ownership validation and Contact/Customer auto-association only for that server-created document, while preserving the normal controller behavior for every other ticket. It also assigns a deterministic ticket key for idempotency. See [Implemented anonymous submission boundary](#8-implemented-anonymous-submission-boundary).
 
-Possible implementation mechanisms to evaluate:
-
-- A minimal, documented Helpdesk controller extension point/guard that recognizes a server-set anonymous-submission flag and skips the authenticated Contact ownership and automatic Contact/customer association behavior for that path; or
-- A framework-supported `extend_doctype_class` mixin in a dedicated CBSUA extension app, if confirmed available and compatible with the installed framework version and hook ordering.
-
-Do not use `frappe.set_user("Administrator")` as a shortcut, do not trust a client-supplied flag, and do not disable the controller's validation globally. The anonymous flag must be set only by the dedicated server-side submission service after email verification. Confirm the Frappe version's extension-hook support before choosing the mixin route.
+This is an application-level extension, not a framework fork change. The exact framework commit used by deployment must still be verified before release.
 
 ### Permission helper caution
 
