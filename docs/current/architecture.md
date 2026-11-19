@@ -111,6 +111,7 @@ The current `studio/README.md` documents these page routes:
 | `article` | `/help/articles/:name` | Yes | Public article |
 | `customer_tickets` | `/help/my-tickets` | No | Authenticated ticket list |
 | `new_ticket` | `/help/tickets/new` (legacy redirect may route to `/help/my-tickets/new`) | No | Authenticated ticket creation |
+| `guest_new_ticket` | `/help/guest/new` | Yes | Email-verified anonymous ticket submission |
 | `ticket` | `/help/tickets/:name` | No | Authenticated ticket conversation |
 
 The exact route aliases and current route constants must be checked in the actual shared portal route source before adding a new route.
@@ -121,7 +122,7 @@ The current portal session store (`studio/helpdesk/stores/session.ts`) derives `
 
 The existing new-ticket Studio Page JSON (`studio/helpdesk/studio_page/new_ticket/new_ticket.json`) has `allow_guest: 0`. Therefore, exposing anonymous ticket creation is not just a backend API change: it needs a Studio page explicitly available to guests and deliberate session/navigation/UI behavior that preserves the existing authenticated routes.
 
-A dedicated `/help/guest/new` Studio page is a viable proposed route, but must be added using the Studio page source conventions, route constants and guest-access metadata. Do not simply flip the existing authenticated new-ticket page to guest access.
+The dedicated `/help/guest/new` page is implemented in `studio/helpdesk/studio_page/guest_new_ticket/` with `allow_guest: 1`. Its route is registered in `shared/src/portalRoutes.ts`. The existing authenticated page remains guest-disabled; do not change its access metadata.
 
 ## 3. Existing ticket creation and requester model
 
@@ -319,3 +320,32 @@ Do not use `frappe.set_user("Administrator")` as a shortcut, do not trust a clie
 ### Permission helper caution
 
 The `HD Ticket` controller also contains a helper that can grant Guest read/write/create permission at permission level zero. The audit has not confirmed whether that helper is invoked anywhere in the installed app. Regardless, it is not an acceptable implementation path: it would broaden Guest's access to the entire ticket DocType rather than provide one controlled submission operation.
+
+
+## 8. Implemented anonymous submission boundary
+
+The initial implementation on `feat/anonymous-tickets` consists of:
+
+- `helpdesk/anonymous_tickets.py`: guest options, pending submission, email verification, and native ticket creation.
+- `helpdesk/extends/anonymous_ticket.py`: a narrow `HDTicket` mixin that skips Contact ownership checks and Contact/Customer auto-association only when the server sets the transient verified-submission flag.
+- `helpdesk/hooks.py`: registers the mixin with `extend_doctype_class`.
+- `studio/helpdesk/studio_page/guest_new_ticket/`: a guest-enabled Studio page at `/help/guest/new`.
+- `studio/helpdesk/components/ticket/GuestTicketSubmission.vue`: the guest form and verification confirmation state.
+- `shared/src/portalRoutes.ts`: the `guestTicket` route.
+- `studio/helpdesk/studio_page/public_kb/public_kb.json`: public entry point to the guest form.
+
+The framework hook was confirmed in the CBSUA Frappe fork's current `develop` source: `frappe/model/document.py` resolves `extend_doctype_class` after the base/override controller and composes the extension mixin ahead of the native controller in the MRO. The Helpdesk app declares Frappe `>=17.0.0-dev,<18.0.0`, so this hook is available in the inspected framework line. Verify the exact framework commit in the deployment source lock before release.
+
+The guest API accepts only email, optional name, subject, plain-text description, office, and request type. It does not accept a ticket DocType payload, contact/customer, agent group, assignment, priority, status, internal fields, or attachments. The pending payload is cached for 30 minutes; the emailed token is random, and only its digest is used as the cache key. Verification is serialized with a cache lock and uses a deterministic HD Ticket `key` to make retries return the already-created ticket.
+
+The server inserts the native ticket through the existing controller with a narrow `ignore_permissions=True` operation. This does not grant the Guest role generic DocType permissions. The verified guest path intentionally leaves `contact` and `customer` unset, even when the email matches a Contact belonging to another account.
+
+### Current limitations and validation gates
+
+- Attachments are excluded until a separate guest upload ownership/expiry design exists.
+- Agent replies can use the native email path to `raised_by`; test delivery with the configured outgoing account.
+- The native portal acknowledgement is skipped for portal-origin tickets, so the guest service explicitly invokes the existing acknowledgement method.
+- Realtime customer notifications resolve enabled Frappe Users; they do not deliver to email-only requesters. Do not promise email for every status transition.
+- Inbound email Message-ID/References threading exists, but sender-address ownership validation has not been confirmed. Anonymous inbound replies remain unsupported until audited and tested.
+- Initial tests cover token digest/idempotency key helpers, invalid tokens, invalid email, and missing offices. Run the test module on a disposable Frappe v17-compatible site and add end-to-end verification, replay, expiry, Contact-collision, email privacy, and authenticated-regression tests.
+- The current environment did not run a Frappe bench, Studio build, Semgrep, or real email delivery. Source inspection alone is not release validation.
