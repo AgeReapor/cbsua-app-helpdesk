@@ -195,6 +195,7 @@ def notify_anonymous_requester_status(doc, method=None) -> None:
         or not doc.via_customer_portal
         or not doc.raised_by
         or not doc.has_value_changed("status")
+        or doc.skip_email_workflow()
     ):
         return
 
