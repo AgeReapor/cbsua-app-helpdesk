@@ -1564,12 +1564,11 @@ def permission_query(user: str | None = None):
 def _customer_query(user: str) -> str:
     """Non-agents see their own tickets, plus all tickets of customers they manage."""
     query = _get_base_visibility(user)
-    # A Guest-owned ticket is never exposed through an email/username collision.
-    query = f"({query}) AND (`tabHD Ticket`.owner != 'Guest')"
     managed_customers = _get_managed_customers(user)
     if managed_customers:
         query += " OR " + _build_in_clause("customer", managed_customers)
-    return query
+    # Apply after all visibility branches so no customer query can reveal Guest tickets.
+    return f"({query}) AND (`tabHD Ticket`.owner != 'Guest')"
 
 
 def _agent_query(user: str) -> str | None:
