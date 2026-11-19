@@ -215,6 +215,10 @@ notification_skip_email_types = [
 # DocType Class
 # ---------------
 # Override standard doctype classes
+extend_doctype_class = {
+    "HD Ticket": ["helpdesk.extends.anonymous_ticket.AnonymousHDTicketMixin"],
+}
+
 override_doctype_class = {
     "Email Account": "helpdesk.overrides.email_account.CustomEmailAccount",
     "Assignment Rule": "helpdesk.overrides.assignment_rule.HelpdeskAssignmentRule",
