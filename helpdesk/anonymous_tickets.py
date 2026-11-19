@@ -120,21 +120,19 @@ def start_guest_submission(
 
     verify_url = f"{get_url()}{CUSTOMER_PORTAL_ROOT}/guest/new?verify={token}"
     greeting = (
-        f"Hello {html.escape(payload['full_name'])},"
+        _("Hello {0},").format(html.escape(payload["full_name"]))
         if payload["full_name"]
-        else "Hello,"
+        else _("Hello,")
     )
     frappe.sendmail(
         recipients=[payload["email"]],
         subject=_("Verify your CBSUA Helpdesk request"),
         message=(
             f"<p>{greeting}</p>"
-            "<p>Someone submitted a helpdesk request using this email address. "
-            "Confirm the address to create the ticket.</p>"
+            f"<p>{_('Someone submitted a helpdesk request using this email address. Confirm the address to create the ticket.')}</p>"
             f'<p><a href="{html.escape(verify_url, quote=True)}">'
-            "Verify email and submit request</a></p>"
-            f"<p>This link expires in 30 minutes. If you did not make this request, "
-            "you can ignore this email.</p>"
+            f"{_('Verify email and submit request')}</a></p>"
+            f"<p>{_('This link expires in 30 minutes. If you did not make this request, you can ignore this email.')}</p>"
         ),
     )
     return {
