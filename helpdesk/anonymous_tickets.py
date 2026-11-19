@@ -68,7 +68,7 @@ def _validate_submission(
         "full_name": full_name,
         "subject": subject,
         # The guest form accepts plain text only; the ticket HTML is escaped at insert.
-        "description": description + (f"\n\nSubmitted by: {full_name}" if full_name else ""),
+        "description": description,
         "office": office,
         "request_type": request_type,
     }
@@ -167,7 +167,7 @@ def verify_guest_submission(token: str) -> dict:
             {
                 "doctype": "HD Ticket",
                 "subject": payload["subject"],
-                "description": html.escape(payload["description"]).replace("\n", "<br>"),
+                "description": html.escape(payload["description"] + ("\n\nSubmitted by: " + payload["full_name"] if payload["full_name"] else "")).replace("\n", "<br>"),
                 "raised_by": payload["email"],
                 "via_customer_portal": 1,
                 "office": payload["office"],
@@ -181,6 +181,7 @@ def verify_guest_submission(token: str) -> dict:
 
         # The native portal lifecycle skips its acknowledgement email. Send the
         # existing Helpdesk acknowledgement explicitly after verified creation.
-        ticket.send_acknowledgement_email()
+        if frappe.db.get_single_value("HD Settings", "send_acknowledgement_email"):
+            ticket.send_acknowledgement_email()
         frappe.cache.delete_value(cache_key)
         return {"success": True, "ticket": ticket.name}
