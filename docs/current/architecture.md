@@ -293,3 +293,29 @@ The ticket controller's custom `has_permission(doc, user)` grants direct custome
 The same controller file also defines `set_guest_ticket_creation_permission()`, which programmatically grants the Guest role permission-level-zero read, write and create permissions on `HD Ticket`. A corresponding removal helper exists. The current source inspection has not established that the grant helper is invoked in the installed app lifecycle; verify its call sites and the effective site permissions before changing anything.
 
 **Non-negotiable:** do not invoke this broad Guest permission helper to implement the feature. Guest users must not receive general ticket read/write access. Use a narrow guest submission service that creates tickets server-side, and leave normal ticket read/list APIs protected.
+
+
+### Critical edge case: existing Contact matches
+
+The controller's `before_validate()` sequence is:
+
+1. `validate_portal_contact()`
+2. `set_contact()`
+3. `set_customer()`
+
+The `set_contact()` method looks up a Contact by the email in `raised_by` and assigns it when found. For a normal non-agent session, `validate_portal_contact()` only permits a Contact equal to the session user's own Contact. A Guest session has no authenticated user-owned Contact, so an anonymous submission using an email that already belongs to a Contact can be rejected by the normal controller validation. If this were bypassed carelessly, `set_customer()` could also associate the request with an existing HD Customer.
+
+This is a real lifecycle interaction, not merely a theoretical concern.
+
+**Required design decision before implementation:** anonymous submissions must not silently impersonate or inherit an existing Contact/HD Customer relationship based only on a matching email address. The guest flow should explicitly preserve an external requester identity and avoid automatic Contact/customer association unless the requester separately proves an authorized account relationship.
+
+Possible implementation mechanisms to evaluate:
+
+- A minimal, documented Helpdesk controller extension point/guard that recognizes a server-set anonymous-submission flag and skips the authenticated Contact ownership and automatic Contact/customer association behavior for that path; or
+- A framework-supported `extend_doctype_class` mixin in a dedicated CBSUA extension app, if confirmed available and compatible with the installed framework version and hook ordering.
+
+Do not use `frappe.set_user("Administrator")` as a shortcut, do not trust a client-supplied flag, and do not disable the controller's validation globally. The anonymous flag must be set only by the dedicated server-side submission service after email verification. Confirm the Frappe version's extension-hook support before choosing the mixin route.
+
+### Permission helper caution
+
+The `HD Ticket` controller also contains a helper that can grant Guest read/write/create permission at permission level zero. The audit has not confirmed whether that helper is invoked anywhere in the installed app. Regardless, it is not an acceptable implementation path: it would broaden Guest's access to the entire ticket DocType rather than provide one controlled submission operation.
