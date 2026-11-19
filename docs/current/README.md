@@ -39,7 +39,7 @@ This is a planned documentation and integration lifecycle, **not a claim that up
 
 ## Architecture orientation
 
-Before working on the portal or guest submission, read [Current Architecture and Repository Boundaries](architecture.md). It records the actual multi-repository dependency model and the Studio portal implementation.
+Before working on the portal or guest submission, read [Current Architecture and Repository Boundaries](architecture.md) and the [Agent Handoff](HANDOFF.md). The handoff is the task-level execution guide; the architecture document records the multi-repository dependency model and Studio portal implementation.
 
 In particular:
 
@@ -146,7 +146,9 @@ Initial inspection has confirmed the framework/UI dependency roles, the Studio-b
 - [ ] Complete inbound email trust audit: Message-ID/References thread stitching exists, but sender-address ownership validation has not been established.
 - [x] Confirm the supported Frappe v17 `extend_doctype_class` mechanism and register a narrow HD Ticket mixin.
 - [x] Define the guest API contract, allowlisted fields, POST methods, IP-based rate limits, expiring cache payload, and idempotent verification key.
-- [x] Add a guest Studio page, route, and public home-page entry point without changing the authenticated new-ticket page.
+- [x] Add a guest Studio page and route without changing the authenticated new-ticket page.
+- [ ] Implement the revised Helpdesk-origin login CTA and exact private-KB route exception (see [Agent Handoff](HANDOFF.md)).
+- [ ] Remove the obsolete top-of-homepage guest CTA and hide authenticated-only empty-state actions from Guests.
 - [ ] Test token expiry/replay, concurrent verification, Contact collision isolation, notification privacy, and authenticated regression on a disposable site.
 - [ ] Complete outbound/inbound email and deployment source-lock audits.
 - [x] Record implementation files and ownership boundary in [the anonymous-ticket feature guide](../features/anonymous-ticket-submission.md).
@@ -155,7 +157,7 @@ Initial inspection has confirmed the framework/UI dependency roles, the Studio-b
 
 The feature is ready for integration review only when:
 
-- A logged-out visitor can reach the guest submission path from `/help`.
+- A logged-out visitor can reach the guest submission path from the Helpdesk-origin login page, including when the knowledge base is private.
 - Email is required and name remains optional.
 - Email ownership is verified before ticket creation.
 - A successful verification creates one native Helpdesk ticket, not a parallel record or temporary user.
