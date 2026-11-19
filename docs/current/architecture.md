@@ -118,11 +118,23 @@ The exact route aliases and current route constants must be checked in the actua
 
 ### Guest/session behavior
 
-The current portal session store (`studio/helpdesk/stores/session.ts`) derives `isGuest` from the config response and defines `canCreateTicket` as false for guests. It also redirects guests to login when the knowledge base is private.
+The current portal session store (`studio/helpdesk/stores/session.ts`) derives `isGuest` from the config response and defines `canCreateTicket` as false for guests. Its private-KB redirect now exempts only `/help/guest/new`, both before app initialization and after the session config loads. The boot hook applies the same exact path exception; all other Guest routes remain protected. This source behavior still requires browser validation.
 
 The existing new-ticket Studio Page JSON (`studio/helpdesk/studio_page/new_ticket/new_ticket.json`) has `allow_guest: 0`. Therefore, exposing anonymous ticket creation is not just a backend API change: it needs a Studio page explicitly available to guests and deliberate session/navigation/UI behavior that preserves the existing authenticated routes.
 
-The dedicated `/help/guest/new` page is implemented in `studio/helpdesk/studio_page/guest_new_ticket/` with `allow_guest: 1`. Its route is registered in `shared/src/portalRoutes.ts`. The existing authenticated page remains guest-disabled; do not change its access metadata.
+The dedicated `/help/guest/new` page is implemented in `studio/helpdesk/studio_page/guest_new_ticket/` with `allow_guest: 1`. Its route is registered in `shared/src/portalRoutes.ts`. The existing authenticated page remains guest-disabled; do not change its access metadata. The public KB page no longer contains a top-level anonymous CTA, and the empty-state ticket action group is visible only when the page's `canCreateTicket` binding is true.
+
+
+### Helpdesk-origin login CTA and guest route exception
+
+The login entry path spans both the Helpdesk portal and the shared Frappe login page:
+
+- Helpdesk `loginUrl()` stores `last_visited` as before and adds `helpdesk_guest=1` only when the current path is `/help` or beneath `/help/`.
+- The CBSUA Frappe login context exposes `show_helpdesk_guest_submission` only when that marker is present and the `Referer` is same-origin and points to `/help` or a descendant route.
+- The shared login template renders a fixed `/help/guest/new` link beneath the available login options. The marker is a UI-context signal only; it does not authorize guest submission or change the sanitized post-login redirect.
+- The framework change is isolated on `feat/anonymous-helpdesk-login-cta`. The deployment lock was inspected but not modified. It pins Frappe `0c68cdeff2e64d0fe0be84568b515531e2b506a8`; at inspection, `develop` was one commit ahead. Verify the intended framework base and reconcile source refs before release.
+
+These changes have been committed in source but have not yet been exercised in a running bench/browser. In particular, verify Referer behavior across supported browser policies and all login template variants.
 
 ## 3. Existing ticket creation and requester model
 
