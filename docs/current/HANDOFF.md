@@ -511,3 +511,11 @@ The receiving agent should replace/update this section at the next handoff:
 - Documentation reconciled: current README, architecture, handoff, and feature guide now identify inline OTP as the active design and mark the former bearer-link design superseded.
 - Latest branch head at this snapshot: `f85a4dc60aec32f8a558f0219b9fa152aab6fa58`.
 - **Validation remains outstanding:** no Pilot/Frappe bench, Redis, browser, email server, frontend build, or Semgrep execution was available through the GitHub connector. In particular, verify the deployed Frappe config exposes `frappe.conf.encryption_key`; confirm that the HMAC key is present and stable across workers; exercise cache/lock/transaction callbacks; and run successful ticket creation, concurrent retry, resend invalidation, rollback, Guest permission, and authenticated-flow regression tests.
+
+### Final OTP source review — 2026-11-23
+
+- HMAC key retrieval now uses Frappe's supported `frappe.utils.password.get_encryption_key()` helper, which reads or initializes the site encryption key; tests patch that helper.
+- Added cache outage and resend cooldown/limit coverage. The frontend starts its resend countdown immediately after the first email and honors server-provided cooldown durations.
+- Removed the remaining active documentation wording that described the 30-minute email-link flow; older historical sections are explicitly marked superseded.
+- **Latest branch head:** `caf13df10ce1ecdf126c54d3bb11b18762a1f88a`.
+- **Still unverified:** no tests, build, browser session, Pilot bench, or Semgrep scan were run. This is source-complete work pending environment validation, not a confirmed working Pilot deployment.
