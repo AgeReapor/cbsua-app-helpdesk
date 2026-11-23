@@ -7,6 +7,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from helpdesk.anonymous_tickets import (
+    _build_verification_url,
     _cache_key,
     _ticket_key,
     _token_digest,
@@ -39,8 +40,35 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         self.assertNotEqual(key, _ticket_key(_token_digest("another-token")))
 
     def test_verification_rejects_malformed_tokens_before_lookup(self):
-        with self.assertRaises(frappe.ValidationError):
-            verify_guest_submission("too-short")
+        self.assertEqual(
+            verify_guest_submission("too-short"),
+            {"success": False, "code": "invalid_or_expired"},
+        )
+
+    def test_verification_url_uses_canonical_site_host_and_encodes_token(self):
+        token = "a" * 40 + "/+"
+        with patch("helpdesk.anonymous_tickets.get_url") as get_url:
+            get_url.return_value = "https://helpdesk.example/help/guest/new?verify=safe"
+            result = _build_verification_url(token)
+
+        self.assertEqual(
+            get_url.call_args.args[0],
+            "/help/guest/new?verify=" + __import__("urllib.parse").parse.quote(token, safe=""),
+        )
+        self.assertFalse(get_url.call_args.kwargs["allow_header_override"])
+        self.assertEqual(result, get_url.return_value)
+
+    def test_verification_lock_failure_is_reported_as_temporary(self):
+        with (
+            patch("helpdesk.anonymous_tickets.frappe.db.get_value", return_value=None),
+            patch("helpdesk.anonymous_tickets.frappe.cache.lock", side_effect=RuntimeError),
+            patch("helpdesk.anonymous_tickets.frappe.log_error"),
+        ):
+            result = verify_guest_submission("a" * 48)
+
+        self.assertEqual(
+            result, {"success": False, "code": "temporarily_unavailable"}
+        )
 
     def test_native_ticket_key_is_unique_in_the_doctype_schema(self):
         key_field = frappe.get_meta("HD Ticket").get_field("key")
