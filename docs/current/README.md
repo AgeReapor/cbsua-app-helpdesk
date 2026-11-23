@@ -115,7 +115,7 @@ Prefer creating a native Helpdesk ticket through a narrowly scoped server-side s
 
 Before adding fields or DocTypes, inspect the actual Helpdesk requester model and lifecycle. Reuse existing fields and native notification/communication paths where safe. Keep any custom requester metadata minimal and justified by a concrete gap.
 
-Email verification before ticket creation is the recommended safeguard because an email address alone does not prove control of that mailbox. Verification should use a cryptographically random, single-use, expiring token; store only a protected representation; bind it to the intended email and submission; and make successful ticket creation idempotent against replay or concurrent requests.
+Email verification before ticket creation is the implemented safeguard because an email address alone does not prove control of that mailbox. The implementation uses a cryptographically random, single-use, expiring token; stores only its SHA-256 digest as the cache key; binds it to the pending submission; and makes successful ticket creation idempotent against replay or concurrent requests.
 
 Guest endpoints must accept only explicitly allowed fields, validate input server-side, set privileged fields on the server, and never grant broad Guest Create or Read permissions on Helpdesk tickets. No public endpoint should reveal ticket details, internal comments, private attachments, agent-only data, or ticket existence.
 
