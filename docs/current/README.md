@@ -95,7 +95,7 @@ The guest route is registered in `shared/src/portalRoutes.ts` and the Studio pag
 
 ### Verification email and confirmation behavior (source update 2026-11-23)
 
-The verification email now uses a dedicated Frappe/Jinja template at `helpdesk/templates/emails/guest_ticket_verification.html` with a companion plain-text alternative passed to Frappe's email queue. It carries CBSUA Helpdesk branding, the request subject/office/type summary, an explicit confirmation action, and the 30-minute expiry explanation. The request description is deliberately omitted from email. Dynamic HTML values are escaped.
+The verification email uses dedicated Frappe/Jinja templates at `helpdesk/templates/emails/guest_ticket_verification.html` and `.txt`, selected through Frappe's supported `frappe.sendmail(template=..., args=...)` interface. It carries CBSUA Helpdesk branding, the request subject/office/type summary, an explicit confirmation action, and the 30-minute expiry explanation. The request description is deliberately omitted from email. Dynamic HTML values are escaped.
 
 The verification URL is built from Frappe's configured site URL with request-host overrides disabled, and its token query parameter is URL-encoded. This avoids accepting an arbitrary incoming Host header as the destination host. The configured site hostname must still be the public gateway hostname (including the correct scheme/port where required); this cannot be confirmed from source alone.
 
@@ -273,3 +273,8 @@ The previously documented backend status remains unchanged: focused source-level
 The shared CBSUA login-page redesign is now implemented in source documented in [Current Architecture](architecture.md) and [Agent Handoff](HANDOFF.md): show **Submit a ticket without logging in** directly below **Continue** and **Login with Email Link** on `/login`, replace the welcome heading with **Welcome back to CBSUA Helpdesk**, and use the existing CBSUA logo/favicon assets. This supersedes the earlier Helpdesk-origin-only visibility rule for the CTA. Coordinate the template/context work in `cbsua-app-frappe` with the canonical brand assets in this repository. Keep the guest route and ticket authorization boundaries unchanged.
 
 **Suggested next task for the receiving agent:** validate the implemented login-page UX in a compatible Frappe v17 bench, including the login variants, static asset delivery, guest-route access matrix, and authenticated redirects. Do not change deployment source locks in this task; runtime validation remains required.
+
+
+### Guest submission HTTP 500 correction — 2026-11-23
+
+Pilot reported an Internal Server Error when submitting the guest form. Source inspection traced a concrete compatibility error: the feature passed `text_content=` directly to `frappe.sendmail`, but the project's Frappe v17 implementation does not expose that keyword. Its supported multipart-template interface is `template="guest_ticket_verification"` with `args=email_context`; Frappe internally loads both the HTML and optional `.txt` templates. The backend now uses that interface and no longer passes the unsupported argument. A regression-focused helper test was updated to validate the template context. This is a source fix; the Pilot request still needs to be retried after deploying/restarting with this branch, and the exact runtime traceback should be checked if the 500 persists.
