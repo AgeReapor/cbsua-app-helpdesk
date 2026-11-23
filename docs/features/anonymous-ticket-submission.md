@@ -127,7 +127,7 @@ The pilot's guest form submission returned an Internal Server Error because the 
 
 - Six-digit numeric code generated with `secrets`; plaintext is only included in the outbound email template.
 - Ten-minute challenge lifetime.
-- HMAC-SHA256 digest bound to challenge ID and code, keyed by the site's Frappe encryption key. The cache stores the digest, not the OTP.
+- HMAC-SHA256 digest bound to challenge ID and code, keyed by Frappe's `get_encryption_key()` helper. The cache stores the digest, not the OTP.
 - Maximum five incorrect attempts. A failed attempt is counted and the API reports remaining attempts without exposing the expected value.
 - Resend cooldown of 60 seconds and maximum three resends. Each resend rotates the digest, invalidating the previous code and resetting the failed-attempt counter.
 - Submission, verification, and resend endpoints have IP-based rate limits. A site-scoped distributed lock serializes verification and resend for a challenge.
