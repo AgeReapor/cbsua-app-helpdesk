@@ -109,3 +109,32 @@ Implementation commits: Frappe context `ca22bad01035014b33a6cb5b9b9277468187f028
 ### Submission HTTP 500 compatibility fix (2026-11-23)
 
 The pilot's guest form submission returned an Internal Server Error because the backend passed the unsupported `text_content` keyword to `frappe.sendmail`. The framework's `frappe.email.sendmail` API accepts `template` and `args`, and handles the paired HTML/plain-text templates internally. The endpoint now uses that API. Source commits: `34ef87ead0c95d1f9382e5bc10453acf510ac842` (backend) and `26b84a3e7f5868253e761a08643def3ab46b7c4d` (test update). This correction has not yet been confirmed against the live Pilot instance.
+
+## Email OTP verification (current implementation, 2026-11-23)
+
+**This section supersedes the earlier email-link verification instructions above.** The customer remains on `/help/guest/new` throughout submission and verification. After submitting the form, the backend emails a six-digit code; the page transitions to an inline code-entry state. The customer enters the code and selects **Verify and submit request**. No link, redirect, hostname, or second page is involved.
+
+### API contract
+
+| Endpoint | Purpose |
+|---|---|
+| `get_guest_form_options` | Return enabled office/request-type options only |
+| `start_guest_submission` | Validate form data, create a pending OTP challenge, and send the code; returns an opaque `challenge_id` and expiry metadata |
+| `verify_guest_submission(challenge_id, otp)` | Validate the code and create one native HD Ticket |
+| `resend_guest_submission_otp(challenge_id)` | Rotate and resend the code subject to cooldown and resend limits |
+
+### Challenge and abuse controls
+
+- Six-digit numeric code generated with `secrets`; plaintext is only included in the outbound email template.
+- Ten-minute challenge lifetime.
+- HMAC-SHA256 digest bound to challenge ID and code, keyed by the site's Frappe encryption key. The cache stores the digest, not the OTP.
+- Maximum five incorrect attempts. A failed attempt is counted and the API reports remaining attempts without exposing the expected value.
+- Resend cooldown of 60 seconds and maximum three resends. Each resend rotates the digest, invalidating the previous code and resetting the failed-attempt counter.
+- Submission, verification, and resend endpoints have IP-based rate limits. A site-scoped distributed lock serializes verification and resend for a challenge.
+- A deterministic native HD Ticket key derived from the opaque challenge ID preserves idempotency after successful ticket creation. The lock is retained until the database transaction commits or rolls back; challenge cache cleanup occurs after commit.
+- Email contains the code, expiry, and minimal request summary (subject, office, request type). It excludes the request description and contains no URL.
+- Guest has no general HD Ticket read/create/write permission. Ticket insertion remains a narrowly scoped server-side operation after successful OTP verification.
+
+### Runtime validation still required
+
+Run `pilot frappe --site <disposable-site> run-tests --module helpdesk.tests.test_anonymous_tickets` (or the equivalent command supported by the checked-out Pilot/Frappe version), build the Studio frontend, and run Frappe Semgrep on changed Python files. Then test real email delivery, valid/invalid/expired OTP, five failed attempts, resend cooldown/limit and invalidation, concurrent verification, transaction rollback, cache outage, exactly-one-ticket idempotency, Guest permissions, and authenticated ticket regression. The GitHub source connector cannot run a Pilot bench or browser, so source commits alone are not runtime evidence.
