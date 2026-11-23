@@ -412,39 +412,14 @@ The route exception and current conditional login CTA have source implementation
 
 ## Implemented shared CBSUA login-page experience — source only (2026-11-23)
 
-The implementation below supersedes the earlier Helpdesk-origin-only visibility rule for the login-page guest CTA.
+The shared `/login` page now has source changes for both internal system users and customers/requesters:
 
-### Intended experience
+- Keep **Continue** and **Login with Email Link** as the primary authentication actions.
+- Add **Submit a ticket without logging in** as a clickable text link beneath the primary authentication actions. It navigates to the fixed local route `/help/guest/new`.
+- Replace the generic sign-in welcome copy with **Welcome back to CBSUA Helpdesk**.
+- Replace the login-page logo and favicon with the existing CBSUA brand assets. Frappe references the public paths under `/assets/helpdesk/desk/cbsua/`; the canonical source artwork is in `desk/public/cbsua/`.
+- The link is visible on direct `/login` visits and Helpdesk-origin redirects. The old query marker and Referer gate have been removed; Helpdesk preserves `last_visited` and redirects to plain `/login`.
 
-The shared `/login` page is now implemented in source as the generic CBSUA Helpdesk sign-in and ticket-entry page for both internal system users (administrators, managers, agents and other staff) and customers/requesters:
+Implementation commits: Frappe login context `ca22bad01035014b33a6cb5b9b9277468187f028`, Frappe login template `3bea4a3b153e6805c284043c4332933a3e690bd3`, Helpdesk session redirect cleanup `a85fed011fd195e3bf763c72d936bbaa09b2ceab`.
 
-1. Keep the existing **Continue** and **Login with Email Link** actions and their authentication behavior.
-2. Place a plain, clearly clickable secondary text link immediately beneath the main login actions: **Submit a ticket without logging in**.
-3. The link must navigate to the fixed local route `/help/guest/new`. Do not accept a user-controlled destination or external redirect.
-4. Replace the generic heading **“Sign In Welcome! Please sign in to continue”** with **“Welcome back to CBSUA Helpdesk”** (or a very close CBSUA-branded equivalent approved during implementation).
-5. Replace the login page's current logo and favicon with the existing CBSUA brand artwork. The Helpdesk branch already contains CBSUA assets under `desk/src/assets/logos/` and `desk/public/cbsua/`, including `cbsua-logo-2400.png`, favicon sizes, `favicon.ico`, and `apple-touch-icon.png`. Reuse those approved assets; do not create a visually different duplicate brand mark.
-
-### Important change from the earlier proposal
-
-The CTA is now intended to be part of the generic CBSUA `/login` experience, not hidden unless the request contains `helpdesk_guest=1` or a Helpdesk-origin Referer. The current conditional implementation in the coordinated Frappe branch is therefore an interim implementation and must be reviewed/refactored as part of this planned UI change. Keep the CTA available on the shared login page for both system users and customers.
-
-This is a product-level branding decision for the CBSUA deployment. Confirm that the CBSUA Frappe fork is not expected to serve unrelated third-party apps or tenants with independent branding before making the login page globally CBSUA-specific.
-
-### Implementation ownership and sequence
-
-- **Frappe fork:** owns the shared `frappe/www/login.html` template and login-page context. Update the heading, place the CTA directly below the authentication actions, and update the login-page logo/favicon references. Keep password, email-link, LDAP/social login and error/disabled states intact.
-- **Helpdesk fork:** owns the canonical CBSUA image assets and the guest destination implementation. Confirm the asset URLs are actually served by the Frappe website/login page. If Frappe cannot safely reference the Helpdesk static assets at runtime, copy the required approved assets into a clearly named Frappe public-asset directory and document the source paths and hashes so the artwork remains traceable.
-- **Frappe/Helpdesk integration:** retain the fixed `/help/guest/new` destination. The old `helpdesk_guest=1` marker and Referer gate may become unnecessary for showing the CTA; remove or simplify them only after confirming they are not used for any other redirect behavior. Preserve safe post-login return handling independently.
-- **Deployment repository:** owns the coordinated immutable source refs and rollout; do not change its source lock in this documentation-only task.
-
-### Acceptance checks
-
-- The exact text link is visible below **Continue** and **Login with Email Link** on `/login`, without being rendered as a third primary button.
-- The link works whether the visitor arrived from Helpdesk, another CBSUA page, or directly at `/login`.
-- The link always opens `/help/guest/new`; it never accepts an external or arbitrary redirect target.
-- The heading, logo, browser favicon, and touch icon consistently use CBSUA branding.
-- Password login, email-link login, optional LDAP/social login, error states, keyboard navigation, screen-reader naming, and mobile layout remain usable.
-- A Guest can reach the guest submission form when the knowledge base is private, while authenticated-only ticket pages and ticket data remain protected.
-- Existing system-user login and post-login redirect behavior remain unchanged apart from the agreed branding.
-
-**Status:** Implemented in source on the Frappe and Helpdesk feature branches. No deployment source lock was changed. Runtime, build, and browser validation remain outstanding.
+**Status:** Implemented in source on the coordinated feature branches. Deployment source locks remain unchanged. Python tests, Frappe/Studio builds, asset delivery, browser behavior and login regression checks have not been run; do not treat this as runtime-validated.
