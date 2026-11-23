@@ -10,6 +10,7 @@ from frappe.tests.utils import FrappeTestCase
 from helpdesk.anonymous_tickets import (
     _build_verification_url,
     _cache_key,
+    _render_guest_verification_email,
     _ticket_key,
     _token_digest,
     _validate_submission,
@@ -58,6 +59,41 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         )
         self.assertFalse(get_url.call_args.kwargs["allow_header_override"])
         self.assertEqual(result, get_url.return_value)
+
+    def test_verification_email_renders_html_and_text_with_minimal_request_context(self):
+        payload = {
+            "full_name": "Campus Visitor",
+            "email": "visitor@example.com",
+            "subject": "Cannot access Wi-Fi",
+            "description": "Private request details",
+            "office": "ICT",
+            "request_type": "TECH-SUPPORT",
+        }
+        with (
+            patch(
+                "helpdesk.anonymous_tickets.frappe.db.get_value",
+                side_effect=["ICT Office", "Technical Support"],
+            ),
+            patch(
+                "helpdesk.anonymous_tickets.get_email_from_template",
+                return_value=("<html>branded</html>", "plain text"),
+            ) as render,
+            patch(
+                "helpdesk.anonymous_tickets.get_url",
+                side_effect=[
+                    "https://helpdesk.example/help/guest/new?verify=token",
+                    "https://helpdesk.example/assets/cbsua-logo.png",
+                ],
+            ),
+        ):
+            result = _render_guest_verification_email(payload, "a" * 48)
+
+        self.assertEqual(result, ("<html>branded</html>", "plain text"))
+        context = render.call_args.args[1]
+        self.assertEqual(context["office"], "ICT Office")
+        self.assertEqual(context["request_type"], "Technical Support")
+        self.assertNotIn("description", context)
+        self.assertEqual(context["expires_in_minutes"], 30)
 
     def test_verification_lock_failure_is_reported_as_temporary(self):
         with (
