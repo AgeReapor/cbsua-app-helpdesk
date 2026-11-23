@@ -42,7 +42,7 @@ The CBSUA deployment is a coordinated Frappe application stack, not a single rep
 
 | Repository | Responsibility | Relevance to this work |
 |---|---|---|
-| [cbsua-app-frappe](https://github.com/AgeReapor/cbsua-app-frappe) | CBSUA Frappe Framework fork and runtime | Shared login template/context if a Helpdesk-origin-only CTA cannot be implemented through a supported app extension point |
+| [cbsua-app-frappe](https://github.com/AgeReapor/cbsua-app-frappe) | CBSUA Frappe Framework fork and runtime | Shared CBSUA login template/context, login branding and guest-submission entry link |
 | [cbsua-app-frappe-ui](https://github.com/AgeReapor/cbsua-app-frappe-ui) | Forked Frappe UI library consumed by Helpdesk frontend | No change currently indicated; do not put route policy or product-specific login behavior here |
 | [cbsua-app-helpdesk](https://github.com/AgeReapor/cbsua-app-helpdesk) | Helpdesk backend, agent Desk UI, and Studio customer portal | Owns anonymous API, ticket integration, Guest route policy, Studio UI, tests, and feature documentation |
 | [cbsua-app-helpdesk-deployment](https://github.com/AgeReapor/cbsua-app-helpdesk-deployment) | Combined image/build/source lock and release orchestration | Owns immutable source refs and pilot release integration; do not change refs as part of feature coding without a release decision |
