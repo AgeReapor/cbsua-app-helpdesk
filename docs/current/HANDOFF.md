@@ -519,3 +519,15 @@ The receiving agent should replace/update this section at the next handoff:
 - Removed the remaining active documentation wording that described the 30-minute email-link flow; older historical sections are explicitly marked superseded.
 - **Latest branch head:** `caf13df10ce1ecdf126c54d3bb11b18762a1f88a`.
 - **Still unverified:** no tests, build, browser session, Pilot bench, or Semgrep scan were run. This is source-complete work pending environment validation, not a confirmed working Pilot deployment.
+
+## Outbound OTP email delivery investigation — 2026-11-23
+
+- **Observed behavior:** guest OTP and resend messages are not arriving; the shared Frappe Login Link email still arrives.
+- **Repository evidence:** Helpdesk helpdesk/anonymous_tickets.py calls frappe.sendmail without now=True in both OTP paths. CBSUA Frappe feat/ui/login implements frappe.www.login.send_login_link with now=True. In this v17 source, sendmail defaults to delayed=True; it creates an Email Queue record. now=True registers that record's send operation after transaction commit. The periodic queue flush is registered under Frappe scheduler all events.
+- **Leading diagnosis:** OTP/resend are dependent on scheduler Email Queue flushing while Login Link uses post-commit immediate queue sending. A suspended queue or unhealthy scheduler/worker can therefore produce the reported partial functionality. This remains a hypothesis until the Pilot Email Queue and scheduler state are inspected.
+- **Email Account override audit:** Helpdesk's CustomEmailAccount overrides inbound message parsing and handling; it does not override outgoing account selection or sendmail.
+- **API semantics:** OTP start/resend currently return success when the message is queued, not when SMTP delivery or inbox receipt is confirmed.
+- **Planned Helpdesk fix:** pass now=True to both OTP sendmail calls to match Login Link; use redact_message_after_send=True; consolidate sending options in a helper; add tests for sendmail arguments, queue state, post-commit delivery, SMTP failure/retry, and resend/cache consistency. Keep the OTP security limits unchanged.
+- **Runtime diagnostic:** inspect Email Queue rows by recipient and creation time, including status/retry/error/email_account; check suspend_email_queue, email-muted state, default outgoing Email Account, scheduler/worker health, and Error Log. Do not include OTP message bodies in logs.
+- **Scope:** no Frappe source change or deployment source-lock update is currently indicated. The likely correction belongs in Helpdesk feat/anonymous-tickets.
+- **Status:** investigation and plan documented; no delivery-mode code changes or Pilot validation performed yet.
