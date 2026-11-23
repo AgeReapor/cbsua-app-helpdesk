@@ -187,7 +187,11 @@ def start_guest_submission(
         "created_at": now,
     }
     cache_key = _cache_key(challenge_id)
-    frappe.cache.set_value(cache_key, challenge, expires_in_sec=OTP_TTL_SECONDS)
+    try:
+        frappe.cache.set_value(cache_key, challenge, expires_in_sec=OTP_TTL_SECONDS)
+    except Exception:
+        frappe.log_error(message=frappe.get_traceback(), title="Guest ticket OTP cache unavailable")
+        return {"success": False, "code": "temporarily_unavailable"}
     try:
         frappe.sendmail(
             recipients=[payload["email"]],
@@ -259,7 +263,11 @@ def verify_guest_submission(challenge_id: str, otp: str) -> dict:
         challenge["attempts"] = challenge.get("attempts", 0) + 1
         remaining = max(0, MAX_OTP_ATTEMPTS - challenge["attempts"])
         ttl = max(1, int(OTP_TTL_SECONDS - (time.time() - challenge["created_at"])))
-        frappe.cache.set_value(cache_key, challenge, expires_in_sec=ttl)
+        try:
+            frappe.cache.set_value(cache_key, challenge, expires_in_sec=ttl)
+        except Exception:
+            frappe.log_error(message=frappe.get_traceback(), title="Guest ticket OTP attempt update failed")
+            return {"success": False, "code": "temporarily_unavailable"}
         return {
             "success": False,
             "code": "too_many_attempts" if remaining == 0 else "invalid_code",
@@ -330,7 +338,11 @@ def resend_guest_submission_otp(challenge_id: str) -> dict:
     updated["resends"] = challenge.get("resends", 0) + 1
     updated["last_sent_at"] = time.time()
     ttl = max(1, int(OTP_TTL_SECONDS - (time.time() - challenge["created_at"])))
-    frappe.cache.set_value(cache_key, updated, expires_in_sec=ttl)
+    try:
+        frappe.cache.set_value(cache_key, updated, expires_in_sec=ttl)
+    except Exception:
+        frappe.log_error(message=frappe.get_traceback(), title="Guest ticket OTP resend cache update failed")
+        return {"success": False, "code": "temporarily_unavailable"}
     try:
         frappe.sendmail(
             recipients=[challenge["payload"]["email"]],
