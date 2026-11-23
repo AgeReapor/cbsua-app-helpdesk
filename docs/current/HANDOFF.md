@@ -32,7 +32,7 @@ The revised intended flow is:
 
 When the KB is public, Guests may browse it, but must not see authenticated-only **Raise a ticket** or **View my tickets** actions. Do not add a second prominent anonymous button to the KB homepage. Authenticated users keep their existing portal actions and routes.
 
-The login CTA is a navigation affordance only. It must not act as an authorization control or weaken the portal's access policy. The new shared-login visibility and branding plan supersedes the earlier Helpdesk-origin-only CTA proposal.
+The login CTA is a navigation affordance only. It must not act as an authorization control or weaken the portal's access policy. The shared-login CTA and branding implementation supersedes the earlier Helpdesk-origin-only CTA proposal.
 
 ---
 
