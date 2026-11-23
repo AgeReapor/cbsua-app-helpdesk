@@ -93,6 +93,20 @@ The guest route is registered in `shared/src/portalRoutes.ts` and the Studio pag
 - Confirmation: displays the native ticket reference and explains that requester-facing agent replies are emailed.
 - No anonymous ticket-list, ticket-detail, update, or lookup endpoint is added.
 
+### Verification email and confirmation behavior (source update 2026-11-23)
+
+The verification email now uses a dedicated Frappe/Jinja template at `helpdesk/templates/emails/guest_ticket_verification.html` with a companion plain-text template. It carries CBSUA Helpdesk branding, the request subject/office/type summary, an explicit confirmation action, and the 30-minute expiry explanation. The request description is deliberately omitted from email. Dynamic HTML values are escaped.
+
+The verification URL is built from Frappe's configured site URL with request-host overrides disabled, and its token query parameter is URL-encoded. This avoids accepting an arbitrary incoming Host header as the destination host. The configured site hostname must still be the public gateway hostname (including the correct scheme/port where required); this cannot be confirmed from source alone.
+
+Opening the link remains read-only. The portal asks the visitor to press **Confirm email and submit request**. The verification API now distinguishes:
+- `invalid_or_expired`: malformed, expired, or already-consumed token without an existing ticket;
+- `processing`: another confirmation currently owns the verification lock;
+- `temporarily_unavailable`: cache/lock service failure, with safe server-side diagnostics;
+- success: returns the original ticket reference on an idempotent retry.
+
+The UI no longer labels every failure as an expired link. It offers retry on temporary/processing failures and a fresh-request path only for invalid/expired links. Database insertion exceptions remain exceptions so Frappe can roll back; they are not converted into a success-shaped response. These changes are source-level only until the targeted Frappe tests and pilot gateway email round-trip are run.
+
 The backend feature and revised entry/navigation source changes are implemented in this branch. The KB homepage top CTA has been removed, and its empty-state ticket actions are gated by `canCreateTicket`. The behavior is not yet runtime-validated.
 
 ### Architectural direction
@@ -129,7 +143,7 @@ This roadmap is the working status tracker for the anonymous-ticket workstream. 
 |---|---|---|---|
 | 0. Repository and extension-point audit | Inspect portal routes/components, HD Ticket fields/controller, ticket creation, outbound notifications, inbound email, hooks, tests, and upstream extension points. | Confirmed native ticket model, supported `extend_doctype_class` hook on the CBSUA Frappe v17 source, API boundary, and remaining email trust gaps. | **In progress — outbound/inbound email and deployment source-lock audits remain** |
 | 1. Anonymous submission MVP | Guest entry/navigation, form, email verification, and native ticket creation. | Guest can reach the form from the login screen even with a private KB; one verified submission creates one native ticket; authenticated flow is unchanged. | **In progress — backend, guest page, route exceptions, login CTA, and KB action cleanup are implemented in source; runtime validation remains** |
-| 2. Email communications | Verification and acknowledgement email; public agent replies use native `raised_by` recipient; evaluate requester-visible status updates and inbound email replies. | Real outbound delivery and template privacy are tested; inbound sender identity policy is explicit. | **In progress — verification, acknowledgement, agent-reply delivery, and status-change notices implemented; inbound trust remains unverified** |
+| 2. Email communications | Verification and acknowledgement email; public agent replies use native `raised_by` recipient; evaluate requester-visible status updates and inbound email replies. | Real outbound delivery and template privacy are tested; inbound sender identity policy is explicit. | **In progress — branded verification template and differentiated verification responses implemented in source; outbound delivery/runtime validation and inbound trust audit remain** |
 | 3. Security and operational readiness | Rate limiting, replay/idempotency protection, expiry/cleanup, duplicate handling, attachment policy, auditability, accessibility, monitoring, and regression tests. | Security and acceptance tests pass; deployment and support requirements are documented. | **In progress — IP rate limits, expiring tokens, idempotent verification, no-attachment policy, and Guest read isolation implemented; bench/security validation pending** |
 | 4. Account association | Match eligible verified anonymous requester identities to newly registered accounts after ownership verification. | Explicit migration rules, audit trail, history preservation, and tests are accepted. | **Deferred — future enhancement** |
 | 5. Upstream integration and documentation reconciliation | Review the completed feature against upstream extension points; propose or port generic changes upstream where appropriate; reconcile documentation. | Upstream integration path is agreed; durable docs live in the correct upstream/CBSUA locations; this handoff folder is retired or reduced to a historical pointer. | **Deferred — after feature completion** |
