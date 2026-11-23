@@ -17,6 +17,7 @@ from helpdesk.anonymous_tickets import (
     _otp_digest,
     _ticket_key,
     _validate_submission,
+    resend_guest_submission_otp,
     verify_guest_submission,
 )
 from helpdesk.helpdesk.doctype.hd_ticket.hd_ticket import (
@@ -112,6 +113,41 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         self.assertEqual(result["attempts_remaining"], MAX_OTP_ATTEMPTS - 1)
         self.assertEqual(challenge["attempts"], 1)
         set_value.assert_called_once()
+
+    def test_verification_cache_outage_is_reported_as_temporary(self):
+        with (
+            patch("helpdesk.anonymous_tickets.frappe.db.get_value", return_value=None),
+            patch("helpdesk.anonymous_tickets._acquire_challenge_lock", return_value=Mock()),
+            patch("helpdesk.anonymous_tickets.frappe.cache.get_value", side_effect=RuntimeError),
+            patch("helpdesk.anonymous_tickets.frappe.log_error"),
+        ):
+            result = verify_guest_submission("a" * 48, "123456")
+        self.assertEqual(result, {"success": False, "code": "temporarily_unavailable"})
+
+    def test_resend_obeys_cooldown_and_resend_limit(self):
+        challenge_id = "a" * 48
+        challenge = {
+            "payload": {"email": "visitor@example.com"},
+            "resends": 0,
+            "last_sent_at": 990,
+            "created_at": 500,
+        }
+        with (
+            patch("helpdesk.anonymous_tickets._acquire_challenge_lock", return_value=Mock()),
+            patch("helpdesk.anonymous_tickets.frappe.cache.get_value", return_value=challenge),
+            patch("helpdesk.anonymous_tickets.time.time", return_value=1000),
+        ):
+            result = resend_guest_submission_otp(challenge_id)
+        self.assertEqual(result["code"], "cooldown")
+        challenge["resends"] = 3
+        challenge["last_sent_at"] = 800
+        with (
+            patch("helpdesk.anonymous_tickets._acquire_challenge_lock", return_value=Mock()),
+            patch("helpdesk.anonymous_tickets.frappe.cache.get_value", return_value=challenge),
+            patch("helpdesk.anonymous_tickets.time.time", return_value=1000),
+        ):
+            result = resend_guest_submission_otp(challenge_id)
+        self.assertEqual(result["code"], "resend_limit")
 
     def test_native_ticket_key_is_unique_in_the_doctype_schema(self):
         key_field = frappe.get_meta("HD Ticket").get_field("key")
