@@ -93,19 +93,11 @@ The guest route is registered in `shared/src/portalRoutes.ts` and the Studio pag
 - Confirmation: displays the native ticket reference and explains that requester-facing agent replies are emailed.
 - No anonymous ticket-list, ticket-detail, update, or lookup endpoint is added.
 
-### Verification email and confirmation behavior (source update 2026-11-23)
+### Verification email and confirmation behavior — superseded by inline OTP (2026-11-23)
 
-The verification email uses dedicated Frappe/Jinja templates at `helpdesk/templates/emails/guest_ticket_verification.html` and `.txt`, selected through Frappe's supported `frappe.sendmail(template=..., args=...)` interface. It carries CBSUA Helpdesk branding, the request subject/office/type summary, an explicit confirmation action, and the 30-minute expiry explanation. The request description is deliberately omitted from email. Dynamic HTML values are escaped.
+The earlier link-based implementation and URL/Host-header requirements are no longer the active verification design. The current flow sends a six-digit OTP in the branded HTML/plain-text email. The templates contain the request subject/office/type summary and 10-minute expiry, but no verification URL or request description. The customer enters the code inline on `/help/guest/new`.
 
-The verification URL is built from Frappe's configured site URL with request-host overrides disabled, and its token query parameter is URL-encoded. This avoids accepting an arbitrary incoming Host header as the destination host. The configured site hostname must still be the public gateway hostname (including the correct scheme/port where required); this cannot be confirmed from source alone.
-
-Opening the link remains read-only. The portal asks the visitor to press **Confirm email and submit request**. The verification API now distinguishes:
-- `invalid_or_expired`: malformed, expired, or already-consumed token without an existing ticket;
-- `processing`: another confirmation currently owns the verification lock;
-- `temporarily_unavailable`: cache/lock service failure, with safe server-side diagnostics;
-- success: returns the original ticket reference on an idempotent retry.
-
-The UI no longer labels every failure as an expired link. It offers retry on temporary/processing failures and a fresh-request path only for invalid/expired links. Database insertion exceptions remain exceptions so Frappe can roll back; they are not converted into a success-shaped response. These changes are source-level only until the targeted Frappe tests and pilot gateway email round-trip are run.
+The authoritative controls are documented in **Email OTP verification — implementation update** below: 10-minute challenge TTL, HMAC-SHA256 digest bound to the opaque challenge ID and site encryption key, five failed attempts, 60-second resend cooldown, maximum three resends, resend invalidation, and idempotent native ticket creation under a transaction-scoped distributed lock. Source implementation is committed; Pilot tests, real email delivery, frontend build, and security scan remain outstanding.
 
 The backend feature and revised entry/navigation source changes are implemented in this branch. The KB homepage top CTA has been removed, and its empty-state ticket actions are gated by `canCreateTicket`. The behavior is not yet runtime-validated.
 
@@ -115,7 +107,7 @@ Prefer creating a native Helpdesk ticket through a narrowly scoped server-side s
 
 Before adding fields or DocTypes, inspect the actual Helpdesk requester model and lifecycle. Reuse existing fields and native notification/communication paths where safe. Keep any custom requester metadata minimal and justified by a concrete gap.
 
-Email verification before ticket creation is the implemented safeguard because an email address alone does not prove control of that mailbox. The implementation uses a cryptographically random, single-use, expiring token; stores only its SHA-256 digest as the cache key; binds it to the pending submission; and makes successful ticket creation idempotent against replay or concurrent requests.
+Email verification before ticket creation is the implemented safeguard because an email address alone does not prove control of that mailbox. The current implementation uses a six-digit OTP challenge, a random opaque challenge ID, and a challenge-bound HMAC digest stored with the pending submission. It enforces expiry, attempt and resend limits, and idempotent ticket creation. The earlier bearer-link design is superseded.
 
 Guest endpoints must accept only explicitly allowed fields, validate input server-side, set privileged fields on the server, and never grant broad Guest Create or Read permissions on Helpdesk tickets. No public endpoint should reveal ticket details, internal comments, private attachments, agent-only data, or ticket existence.
 
