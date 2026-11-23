@@ -74,14 +74,14 @@ The initial idea of placing an anonymous-submission button at the top of the pub
 
 The implemented source-level flow is (runtime verification still pending):
 
-1. A Guest who opens `/help` while the knowledge base is private is sent to the Frappe login page, as required by the existing private-KB policy.
-2. Helpdesk adds `helpdesk_guest=1` only to its login redirect. The Frappe login context additionally requires a same-origin `Referer` from `/help` or a `/help/...` route before showing the secondary `Submit a request without signing in` link beneath the login options.
-3. The link navigates directly to `/help/guest/new`. It must not require a logged-in session.
+1. A Guest who opens `/help` while the knowledge base is private is sent to the shared Frappe `/login` page, as required by the existing private-KB policy.
+2. The generic CBSUA login page displays **Welcome back to CBSUA Helpdesk**, the CBSUA logo/favicon, and the clickable **Submit a ticket without logging in** text link beneath the primary authentication actions.
+3. The link is available whether the visitor arrived from `/help`, another CBSUA page, or directly at `/login`; it always navigates to the fixed local route `/help/guest/new`.
 4. The guest page uses the existing verified-email submission flow described below.
-5. When the knowledge base is public, Guests may browse it, but they must not see authenticated-only `Raise a ticket` or `View my tickets` actions. The anonymous entry link should not be duplicated as a prominent top-of-homepage button.
+5. When the knowledge base is public, Guests may browse it, but they must not see authenticated-only `Raise a ticket` or `View my tickets` actions. The anonymous entry link is not duplicated as a prominent top-of-homepage button.
 6. Authenticated visitors retain the existing authenticated ticket creation and ticket-list actions. The authenticated `/help/tickets/new` and `/help/my-tickets` routes remain protected.
 
-The login CTA is global to the CBSUA deployment's shared login page. Confirm that this deployment is not serving independently branded tenants before rollout.
+The login CTA is a navigation affordance only. It does not authorize ticket creation or change the private-KB policy. The CTA is intentionally global to the CBSUA deployment's shared login page; confirm that the deployment is not serving independently branded tenants before rollout.
 
 The guest route is registered in `shared/src/portalRoutes.ts` and the Studio page is configured with `allow_guest: 1`. Both redirect guards now exempt only `/help/guest/new` (allowing a trailing slash); all other private-KB Guest routes remain subject to login. This is source-implemented but not yet browser-validated.
 
@@ -232,7 +232,7 @@ The current implementation's Studio page has `allow_guest: 1`, but the private-k
 ### Repository ownership
 
 - **`AgeReapor/cbsua-app-helpdesk`**: owns the Studio guest page, route/session behavior, private-KB exception, homepage action visibility, backend guest API, ticket mixin and tests.
-- **`AgeReapor/cbsua-app-frappe`**: owns the shared Frappe login template/context change only if the CTA cannot be implemented cleanly through an existing Helpdesk-specific integration point. Keep the condition Helpdesk-origin-only.
+- **`AgeReapor/cbsua-app-frappe`**: owns the shared Frappe login template/context change only if the CTA cannot be implemented cleanly through an existing Helpdesk-specific integration point. The CBSUA login template is intentionally branded for this deployment and shows the guest ticket link on every login entry. Confirm that this deployment is not intended for unrelated independently branded tenants.
 - **`AgeReapor/cbsua-app-frappe-ui`**: no change is currently indicated; do not modify the UI library for route policy or login-template concerns.
 - **`AgeReapor/cbsua-app-helpdesk-deployment`**: owns source-lock/build-ref and pilot release integration. Do not change deployment refs as part of this UI task without an explicit release decision.
 
@@ -254,7 +254,7 @@ No changes to the login template, guest redirect, homepage actions, or route gua
 
 The previously documented backend status remains unchanged: focused source-level tests exist but have not been run in a Frappe bench; end-to-end verification/replay/expiry/concurrency, Contact-collision, outbound email privacy/delivery, authenticated regression, Studio build, Semgrep, and migration/index checks remain release gates. Anonymous inbound email replies are not supported or claimed.
 
-### Next planned login-page UX
+### Implemented shared CBSUA login-page UX
 
 The shared CBSUA login-page redesign is now implemented in source documented in [Current Architecture](architecture.md) and [Agent Handoff](HANDOFF.md): show **Submit a ticket without logging in** directly below **Continue** and **Login with Email Link** on `/login`, replace the welcome heading with **Welcome back to CBSUA Helpdesk**, and use the existing CBSUA logo/favicon assets. This supersedes the earlier Helpdesk-origin-only visibility rule for the CTA. Coordinate the template/context work in `cbsua-app-frappe` with the canonical brand assets in this repository. Keep the guest route and ticket authorization boundaries unchanged.
 
