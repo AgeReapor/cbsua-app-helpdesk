@@ -8,7 +8,7 @@
 - A visitor submits an optional name, email address, office, request type, subject and plain-text description.
 - Attachments are intentionally unavailable in this first implementation. The existing upload path is authenticated and must not be opened to Guest.
 - The server emails a six-digit OTP using the CBSUA-branded HTML and plain-text templates. The email contains a minimal request summary (subject, office and request type), the 10-minute expiry, and no verification URL or request description. The customer enters the code inline on the same page; no ticket is created before the email is verified. See **Email OTP verification (current implementation)** below for the authoritative API and security details.
-- The verification page creates a native `HD Ticket` and displays its reference. Follow-up updates are sent to the submitted email address through Helpdesk's existing agent-reply email path.
+- After successful inline OTP verification, the guest form creates a native `HD Ticket` and displays its reference. Follow-up updates are sent to the submitted email address through Helpdesk's existing agent-reply email path.
 - Anonymous users do not receive ticket list, detail, update, or lookup endpoints.
 
 ## Backend boundary
