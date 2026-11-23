@@ -77,7 +77,7 @@ The implemented source-level flow is (runtime verification still pending):
 1. A Guest who opens `/help` while the knowledge base is private is sent to the shared Frappe `/login` page, as required by the existing private-KB policy.
 2. The generic CBSUA login page displays **Welcome back to CBSUA Helpdesk**, the CBSUA logo/favicon, and the clickable **Submit a ticket without logging in** text link beneath the primary authentication actions.
 3. The link is available whether the visitor arrived from `/help`, another CBSUA page, or directly at `/login`; it always navigates to the fixed local route `/help/guest/new`.
-4. The guest page uses the existing verified-email submission flow described below.
+4. The guest page uses the inline email OTP submission flow described below; the customer remains on `/help/guest/new` while entering the code.
 5. When the knowledge base is public, Guests may browse it, but they must not see authenticated-only `Raise a ticket` or `View my tickets` actions. The anonymous entry link is not duplicated as a prominent top-of-homepage button.
 6. Authenticated visitors retain the existing authenticated ticket creation and ticket-list actions. The authenticated `/help/tickets/new` and `/help/my-tickets` routes remain protected.
 
@@ -89,7 +89,7 @@ The guest route is registered in `shared/src/portalRoutes.ts` and the Studio pag
 
 - `/help/guest/new`: guest-accessible Studio page with a dedicated submission component.
 - Submission: optional name, email, office, request type, subject and plain-text description; attachments are excluded.
-- Verification: sends a 30-minute single-use email link; ticket creation occurs only after successful verification.
+- Verification: sends a six-digit email OTP with a 10-minute lifetime; the customer enters it on the same page, and ticket creation occurs only after successful verification.
 - Confirmation: displays the native ticket reference and explains that requester-facing agent replies are emailed.
 - No anonymous ticket-list, ticket-detail, update, or lookup endpoint is added.
 
@@ -142,7 +142,7 @@ This roadmap is the working status tracker for the anonymous-ticket workstream. 
 | Phase | Scope | Exit condition | Status |
 |---|---|---|---|
 | 0. Repository and extension-point audit | Inspect portal routes/components, HD Ticket fields/controller, ticket creation, outbound notifications, inbound email, hooks, tests, and upstream extension points. | Confirmed native ticket model, supported `extend_doctype_class` hook on the CBSUA Frappe v17 source, API boundary, and remaining email trust gaps. | **In progress — outbound/inbound email and deployment source-lock audits remain** |
-| 1. Anonymous submission MVP | Guest entry/navigation, form, email verification, and native ticket creation. | Guest can reach the form from the login screen even with a private KB; one verified submission creates one native ticket; authenticated flow is unchanged. | **In progress — backend, guest page, route exceptions, login CTA, and KB action cleanup are implemented in source; runtime validation remains** |
+| 1. Anonymous submission MVP | Guest entry/navigation, form, email OTP verification, and native ticket creation. | Guest can reach the form from the login screen even with a private KB; one OTP-verified submission creates one native ticket; authenticated flow is unchanged. | **In progress — inline OTP source implementation committed; runtime validation remains** |
 | 2. Email communications | Verification and acknowledgement email; public agent replies use native `raised_by` recipient; evaluate requester-visible status updates and inbound email replies. | Real outbound delivery and template privacy are tested; inbound sender identity policy is explicit. | **In progress — branded verification template and differentiated verification responses implemented in source; outbound delivery/runtime validation and inbound trust audit remain** |
 | 3. Security and operational readiness | Rate limiting, replay/idempotency protection, expiry/cleanup, duplicate handling, attachment policy, auditability, accessibility, monitoring, and regression tests. | Security and acceptance tests pass; deployment and support requirements are documented. | **In progress — IP rate limits, expiring tokens, idempotent verification, no-attachment policy, and Guest read isolation implemented; bench/security validation pending** |
 | 4. Account association | Match eligible verified anonymous requester identities to newly registered accounts after ownership verification. | Explicit migration rules, audit trail, history preservation, and tests are accepted. | **Deferred — future enhancement** |
