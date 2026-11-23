@@ -452,7 +452,7 @@ The receiving agent should replace/update this section at the next handoff:
 - **Problem traced:** the backend previously collapsed invalid/expired tokens and infrastructure exceptions into Frappe errors, while the Vue component mapped every failed verification call to one expired/already-used message. The email body was assembled inline and the URL was built by concatenating `get_url()` with a route, leaving Host-header-derived URL behavior and query encoding implicit.
 - **Source changes committed:**
   - Added branded HTML and plain-text templates: `helpdesk/templates/emails/guest_ticket_verification.html` and `.txt`.
-  - Added Jinja rendering with both HTML and plain-text alternatives passed to `frappe.sendmail`, a request summary limited to subject/office/type, escaped template values, and a canonical URL builder using `get_url(..., allow_header_override=False)` plus URL encoding.
+  - Added a minimal Jinja context and used Frappe's supported `frappe.sendmail(template="guest_ticket_verification", args=context)` API to load both HTML and plain-text alternatives; the later HTTP 500 incident section records and corrects the initial unsupported `text_content` argument. The message includes a request summary limited to subject/office/type, escaped template values, and a canonical URL builder using `get_url(..., allow_header_override=False)` plus URL encoding.
   - Verification now returns structured `invalid_or_expired`, `processing`, and `temporarily_unavailable` codes for expected failure modes. Cache/lock failures are logged with traceback context; bearer tokens are not included in those log messages.
   - Portal confirmation UI now separates expired/invalid from temporary service errors, supports retry for temporary/in-progress outcomes, and avoids telling a requester to create a duplicate request when the result is uncertain.
   - Added focused tests for malformed and expired tokens, canonical URL generation/encoding, and lock/cache service failure classification.
@@ -470,7 +470,7 @@ The receiving agent should replace/update this section at the next handoff:
 - **Deployment:** no framework branch, deployment source lock, image ref, or pilot gateway configuration was changed. Do not promote until the runtime checks above pass.
 
 
-**Latest source commits after the initial email fix:** backend lock-release resilience `6f21a47ada046d953632007e2b1b6e5473804388`; expiry/cache outage tests `fb86a6e7d9fad5e2a7351e066fc98f4cd3814c66`. The email backend now loads both template formats through Frappe's `get_email_from_template` and passes the plain-text alternative as `text_content` to `frappe.sendmail`.
+**Latest source commits after the initial email fix:** backend lock-release resilience `6f21a47ada046d953632007e2b1b6e5473804388`; expiry/cache outage tests `fb86a6e7d9fad5e2a7351e066fc98f4cd3814c66`. The email backend now delegates both template formats to Frappe's supported `template`/`args` sendmail interface; see the HTTP 500 incident section below for the compatibility correction.
 
 **Latest feature branch head at handoff refresh:** `f047ffca3569c1916ea21a3b700f5fbb9ab18fc5`. This is the Helpdesk feature branch only; no changes were made to the framework or deployment repositories. The latest documentation refresh follows the latest implementation commits.
 
