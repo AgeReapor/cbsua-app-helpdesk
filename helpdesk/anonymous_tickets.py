@@ -45,7 +45,9 @@ def _build_verification_url(token: str) -> str:
     )
 
 
-def _render_guest_verification_email(payload: dict, token: str) -> tuple[str, str | None]:
+def _render_guest_verification_email(
+    payload: dict, token: str
+) -> tuple[str, str | None]:
     office_name = frappe.db.get_value("CB Office", payload["office"], "office_name")
     request_type_name = frappe.db.get_value(
         "CB Office Request Type", payload["request_type"], "request_type_name"
