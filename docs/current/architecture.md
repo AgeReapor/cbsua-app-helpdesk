@@ -182,7 +182,7 @@ These hooks and native permission checks must remain intact. Do not bypass them 
 7. Keep anonymous ticket updates in the existing Helpdesk notification lifecycle, but verify that only requester-visible content is emailed. Do not expose internal comments, private attachments, agent-only fields or ticket details through a public endpoint.
 8. Do not add a public ticket list/detail route. Anonymous requesters receive updates through email.
 9. Render guest verification mail from a dedicated Helpdesk-owned Jinja template. Generate absolute URLs from the configured canonical site hostname rather than an untrusted request Host header. Keep requester descriptions and sensitive details out of verification email.
-9. Future account association must be an explicit, auditable identity-linking process for verified email addresses, not automatic matching on an arbitrary string.
+10. Future account association must be an explicit, auditable identity-linking process for verified email addresses, not automatic matching on an arbitrary string.
 
 ## 5. Development and verification workflow
 
