@@ -254,4 +254,8 @@ No changes to the login template, guest redirect, homepage actions, or route gua
 
 The previously documented backend status remains unchanged: focused source-level tests exist but have not been run in a Frappe bench; end-to-end verification/replay/expiry/concurrency, Contact-collision, outbound email privacy/delivery, authenticated regression, Studio build, Semgrep, and migration/index checks remain release gates. Anonymous inbound email replies are not supported or claimed.
 
-**Suggested next task for the receiving agent:** implement the guest-entry redesign on `feat/anonymous-tickets`, first verifying current branch head and inspecting the exact login redirect/context flow in both repositories. Do not begin by adding another homepage button or broadly disabling the private-KB redirect.
+### Next planned login-page UX
+
+The next UI slice is the shared CBSUA login-page redesign documented in [Current Architecture](architecture.md) and [Agent Handoff](HANDOFF.md): show **Submit a ticket without logging in** directly below **Continue** and **Login with Email Link** on `/login`, replace the welcome heading with **Welcome back to CBSUA Helpdesk**, and use the existing CBSUA logo/favicon assets. This supersedes the earlier Helpdesk-origin-only visibility rule for the CTA. Coordinate the template/context work in `cbsua-app-frappe` with the canonical brand assets in this repository. Keep the guest route and ticket authorization boundaries unchanged.
+
+**Suggested next task for the receiving agent:** implement this shared login-page UX after verifying the current Helpdesk and Frappe branch heads, the exact login template, asset-serving paths, and the current source of the CBSUA brand assets. Do not change deployment source locks in this task; runtime validation remains required.
