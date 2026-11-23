@@ -151,3 +151,16 @@ The source-level cause was a difference in delivery mode: OTP messages previousl
 - Focused tests assert the helper uses the correct recipient/template context, `now=True`, and `redact_message_after_send=True` for both initial and resend mail.
 - The existing challenge security controls remain unchanged: HMAC digest, 10-minute expiry, five attempts, 60-second cooldown, three resends, and challenge rotation.
 - Pilot validation remains required: verify Email Queue records and status, actual mailbox delivery, resend invalidation, SMTP failure/retry, and ordinary delayed email queue processing.
+
+
+## Correct-OTP insertion failure: first-ticket tag permission (2026-11-23)
+
+Pilot testing found that an incorrect OTP returned the expected invalid-code response, but a correct OTP produced a generic temporary-unavailable frontend message and no committed HD Ticket. The available Error Log entry was unrelated to this endpoint, and no verification-specific Error Log metadata was present.
+
+Source tracing found that the native `HD Ticket.after_insert()` invokes `tag_first_ticket()`. The Helpdesk `add_tag()` override routes this through `helpdesk.api.tags.apply_tag()`, which ultimately invokes Frappe's `DocTags.update_tags()`. That framework method calls `doc.check_permission("write")`. The ticket's narrowly scoped `insert(ignore_permissions=True)` does not make this subsequent write check succeed for Guest, so first-ticket tagging can raise a permission exception and roll back ticket creation.
+
+The anonymous-ticket mixin now overrides `tag_first_ticket()` to skip this cosmetic operation only when the server-set `anonymous_submission` flag is present. Other ticket submissions retain the native first-ticket tag. A focused regression test asserts that `apply_tag` is not called for the anonymous path. This keeps Guest permissions, ticket read isolation, and native ticket validation unchanged.
+
+**Commits:** `0d3065d82bdd85369982dda21c983cf5c8004cbc` (implementation) and `ba0be55d2a997288b8a4cced8ded40257e3db33b` (regression test).
+
+**Validation still required:** run `helpdesk.tests.test_anonymous_tickets` on a disposable Frappe v17-compatible bench; verify correct OTP creates exactly one HD Ticket in Pilot; retry the same challenge to confirm idempotency; confirm Guest cannot read or modify tickets; and confirm authenticated first-ticket tagging still works. The root cause is source-supported but not yet confirmed by a live endpoint traceback or post-patch Pilot test.
