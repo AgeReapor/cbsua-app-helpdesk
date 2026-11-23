@@ -128,13 +128,16 @@ For future changes, retain regression coverage for:
 - guest acknowledgement, agent reply, and status-notice email behavior;
 - private/public knowledge-base routing and authenticated portal regressions.
 
-Run the focused test module on a compatible Frappe v17 bench:
+Run the focused tests on a compatible Frappe v17 Pilot bench:
 
 ```bash
-bench --site <site> run-tests --app helpdesk --module helpdesk.tests.test_anonymous_tickets
+pilot frappe --site <site> run-tests --module helpdesk.tests.test_anonymous_tickets
+pilot frappe --site <site> run-tests --module helpdesk.tests.test_email_presentation
 ```
 
-Also build the Studio frontend and verify the guest flow in a browser after changes to the page, routing, or session guards. Pilot end-to-end confirmation does not replace regression testing after subsequent code changes.
+The email-presentation test covers the minimal reply template, the new-account tracking policy, and the one-time migration. Confirm the migration on the Pilot site with `pilot frappe --site <site> migrate`, then send a fresh agent reply and inspect its raw email source: it should contain the reply and the **CBSUA Support** signature, with no `mark_email_as_seen` image. Also verify that a legitimate inline image supplied in an agent reply is still preserved.
+
+Build the Studio frontend and verify the guest flow in a browser after changes to the page, routing, or session guards. Pilot end-to-end confirmation does not replace regression testing after subsequent code changes.
 
 ## Deployment
 
