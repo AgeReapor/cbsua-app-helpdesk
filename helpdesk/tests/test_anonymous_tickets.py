@@ -60,7 +60,7 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         self.assertFalse(get_url.call_args.kwargs["allow_header_override"])
         self.assertEqual(result, get_url.return_value)
 
-    def test_verification_email_renders_html_and_text_with_minimal_request_context(self):
+    def test_verification_email_renders_html_and_text_with_minimal_context(self):
         payload = {
             "full_name": "Campus Visitor",
             "email": "visitor@example.com",
@@ -113,7 +113,9 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         with (
             patch("helpdesk.anonymous_tickets.frappe.db.get_value", return_value=None),
             patch("helpdesk.anonymous_tickets.frappe.cache.lock", return_value=lock),
-            patch("helpdesk.anonymous_tickets.frappe.cache.get_value", return_value=None),
+            patch(
+                "helpdesk.anonymous_tickets.frappe.cache.get_value", return_value=None
+            ),
         ):
             result = verify_guest_submission("a" * 48)
 
@@ -125,7 +127,10 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         with (
             patch("helpdesk.anonymous_tickets.frappe.db.get_value", return_value=None),
             patch("helpdesk.anonymous_tickets.frappe.cache.lock", return_value=lock),
-            patch("helpdesk.anonymous_tickets.frappe.cache.get_value", side_effect=RuntimeError),
+            patch(
+                "helpdesk.anonymous_tickets.frappe.cache.get_value",
+                side_effect=RuntimeError,
+            ),
             patch("helpdesk.anonymous_tickets.frappe.log_error"),
         ):
             result = verify_guest_submission("a" * 48)
