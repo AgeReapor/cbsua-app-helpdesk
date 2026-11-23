@@ -36,7 +36,7 @@ The native portal ticket lifecycle skips acknowledgement email. After verified c
 ### Verification email and failure handling
 
 - Template: `helpdesk/templates/emails/guest_ticket_verification.html`, with a plain-text companion at `helpdesk/templates/emails/guest_ticket_verification.txt`.
-- The backend renders the template through Frappe's Jinja loader. Dynamic values are HTML-escaped. The message shows CBSUA Helpdesk branding and only the request subject, office, and request type; it intentionally omits the full description.
+- The backend loads both formats through Frappe's Jinja email-template loader and passes the plain-text version to `frappe.sendmail` as `text_content`. Dynamic values are HTML-escaped. The message shows CBSUA Helpdesk branding and only the request subject, office, and request type; it intentionally omits the full description.
 - The absolute verification URL uses `get_url(..., allow_header_override=False)`, so a caller-controlled Host header cannot redirect the bearer link to another host. The site's configured canonical hostname and gateway scheme/port must match the actual externally reachable gateway.
 - Opening the link does not consume it. A human must press the confirmation button. This is important because email security scanners commonly prefetch links.
 - Verification responses distinguish `invalid_or_expired`, `processing`, and `temporarily_unavailable`. The portal offers a retry for temporary failures and does not recommend creating a second request while the original outcome is uncertain.
