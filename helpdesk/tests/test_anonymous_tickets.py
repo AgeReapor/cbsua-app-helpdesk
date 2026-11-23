@@ -15,6 +15,7 @@ from helpdesk.anonymous_tickets import (
     _guest_otp_email_context,
     _new_otp,
     _otp_digest,
+    _send_guest_otp_email,
     _ticket_key,
     _validate_submission,
     resend_guest_submission_otp,
@@ -64,6 +65,52 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         self.assertNotIn("description", context)
         self.assertNotIn("verify_url", context)
         self.assertNotIn("logo_url", context)
+
+    def test_guest_otp_email_uses_post_commit_delivery_and_redacts_body(self):
+        payload = {
+            "email": "visitor@example.com",
+            "full_name": "Campus Visitor",
+            "subject": "Cannot access Wi-Fi",
+            "office": "ICT",
+            "request_type": "TECH-SUPPORT",
+        }
+        with (
+            patch(
+                "helpdesk.anonymous_tickets._guest_otp_email_context",
+                return_value={"otp": "123456"},
+            ),
+            patch("helpdesk.anonymous_tickets.frappe.sendmail") as sendmail,
+        ):
+            _send_guest_otp_email(payload, "123456")
+        kwargs = sendmail.call_args.kwargs
+        self.assertEqual(kwargs["recipients"], ["visitor@example.com"])
+        self.assertEqual(kwargs["template"], "guest_ticket_verification")
+        self.assertTrue(kwargs["now"])
+        self.assertTrue(kwargs["redact_message_after_send"])
+        self.assertEqual(kwargs["args"], {"otp": "123456"})
+        self.assertIn("verification code", kwargs["subject"].lower())
+
+    def test_guest_otp_resend_uses_same_post_commit_delivery_configuration(self):
+        payload = {
+            "email": "visitor@example.com",
+            "full_name": "Campus Visitor",
+            "subject": "Cannot access Wi-Fi",
+            "office": "ICT",
+            "request_type": "TECH-SUPPORT",
+        }
+        with (
+            patch(
+                "helpdesk.anonymous_tickets._guest_otp_email_context",
+                return_value={"otp": "654321"},
+            ),
+            patch("helpdesk.anonymous_tickets.frappe.sendmail") as sendmail,
+        ):
+            _send_guest_otp_email(payload, "654321", resend=True)
+        kwargs = sendmail.call_args.kwargs
+        self.assertTrue(kwargs["now"])
+        self.assertTrue(kwargs["redact_message_after_send"])
+        self.assertIn("new", kwargs["subject"].lower())
+        self.assertEqual(kwargs["args"], {"otp": "654321"})
 
     def test_verification_rejects_malformed_challenge_or_otp_before_lookup(self):
         self.assertEqual(
