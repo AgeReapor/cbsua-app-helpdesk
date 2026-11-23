@@ -15,7 +15,7 @@ import frappe
 from frappe import _
 from frappe.rate_limiter import rate_limit
 from frappe.utils import get_url, validate_email_address
-from frappe.utils.jinja import render_template
+from frappe.utils.jinja import get_email_from_template
 
 from helpdesk.utils import CUSTOMER_PORTAL_ROOT
 
@@ -45,13 +45,13 @@ def _build_verification_url(token: str) -> str:
     )
 
 
-def _render_guest_verification_email(payload: dict, token: str) -> str:
+def _render_guest_verification_email(payload: dict, token: str) -> tuple[str, str | None]:
     office_name = frappe.db.get_value("CB Office", payload["office"], "office_name")
     request_type_name = frappe.db.get_value(
         "CB Office Request Type", payload["request_type"], "request_type_name"
     )
-    return render_template(
-        "templates/emails/guest_ticket_verification.html",
+    return get_email_from_template(
+        "guest_ticket_verification",
         {
             "full_name": payload["full_name"],
             "subject": payload["subject"],
@@ -64,7 +64,6 @@ def _render_guest_verification_email(payload: dict, token: str) -> str:
             ),
             "expires_in_minutes": PENDING_TTL_SECONDS // 60,
         },
-        is_path=True,
     )
 
 
@@ -179,12 +178,13 @@ def start_guest_submission(
         _cache_key(digest), payload, expires_in_sec=PENDING_TTL_SECONDS
     )
 
-    message = _render_guest_verification_email(payload, token)
+    message, text_content = _render_guest_verification_email(payload, token)
     try:
         frappe.sendmail(
             recipients=[payload["email"]],
             subject=_("Verify your email | CBSUA Helpdesk"),
             message=message,
+            text_content=text_content,
         )
     except Exception:
         frappe.cache.delete_value(_cache_key(digest))
