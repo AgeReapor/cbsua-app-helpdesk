@@ -139,7 +139,7 @@ The pilot's guest form submission returned an Internal Server Error because the 
 
 Run `pilot frappe --site <disposable-site> run-tests --module helpdesk.tests.test_anonymous_tickets` (or the equivalent command supported by the checked-out Pilot/Frappe version), build the Studio frontend, and run Frappe Semgrep on changed Python files. Then test real email delivery, valid/invalid/expired OTP, five failed attempts, resend cooldown/limit and invalidation, concurrent verification, transaction rollback, cache outage, exactly-one-ticket idempotency, Guest permissions, and authenticated ticket regression. The GitHub source connector cannot run a Pilot bench or browser, so source commits alone are not runtime evidence.
 
-## Outbound OTP delivery: investigation and planned correction (2026-11-23)
+## Outbound OTP delivery: implemented correction (2026-11-23)
 
 The OTP start and resend endpoints now call the shared `_send_guest_otp_email()` helper. It uses the supported Frappe template interface, sets `now=True` to register the Email Queue send operation after transaction commit (matching the working Login Link endpoint), and sets `redact_message_after_send=True` to reduce retention of the OTP body after successful delivery. Both endpoints report that the email was queued; this is not a delivery receipt.
 
