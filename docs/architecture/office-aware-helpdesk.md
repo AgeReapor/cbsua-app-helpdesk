@@ -44,3 +44,10 @@ Frappe Link controls check `select` permission when searching linked records. Re
 - [Request type administration](../configuration/request-types.md)
 - [Team-office assignment](../configuration/teams.md)
 - [Boot refactor and acceptance tests](../development/boot-refactor.md)
+
+
+## Customer email communication policy
+
+The anonymous-ticket path reuses Helpdesk's native Communication and Email Queue infrastructure. The default agent-to-customer reply template is deliberately limited to the rendered reply body and the plain-text signature **Regards, CBSUA Support**. It omits portal navigation links and branded image content while preserving the Communication link to the ticket, threading headers, attachments, and the agent's normal conversation history.
+
+Frappe Email Queue normally injects an open-tracking image when an outgoing Email Account has `track_email_status` enabled. CBSUA Helpdesk disables this account-wide: a post-model-sync patch turns it off for existing Email Accounts, and an `Email Account.before_insert` hook turns it off for new accounts. The reply template does not strip images from the message, so legitimate inline images remain unaffected. The policy avoids exposing localhost-only tracker URLs while the permanent public email domain is pending. Reconsider tracking only after the public HTTPS hostname and its value to the support workflow have been established.
