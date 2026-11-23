@@ -129,6 +129,5 @@ function createSessionStore() {
 // Frappe's login sends website users to `last_visited`; agents go to their role's home.
 function loginUrl() {
   localStorage.setItem('last_visited', location.pathname + location.search)
-  const isHelpdeskPortal = location.pathname === '/help' || location.pathname.startsWith('/help/')
-  return isHelpdeskPortal ? '/login?helpdesk_guest=1' : '/login'
+  return '/login'
 }
