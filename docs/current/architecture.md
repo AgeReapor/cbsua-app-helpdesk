@@ -322,7 +322,7 @@ The `set_contact()` method looks up a Contact by the email in `raised_by` and as
 
 This is a real lifecycle interaction, not merely a theoretical concern.
 
-**Resolution in the current implementation:** the guest submission service sets a transient server-side `anonymous_submission` flag only after email verification. The registered `AnonymousHDTicketMixin` skips Contact ownership validation and Contact/Customer auto-association only for that server-created document, while preserving the normal controller behavior for every other ticket. It also assigns a deterministic ticket key for idempotency. See [Implemented anonymous submission boundary](#8-implemented-anonymous-submission-boundary).
+**Resolution in the current implementation:** the guest submission service sets a transient server-side `anonymous_submission` flag only after successful email OTP verification. The registered `AnonymousHDTicketMixin` skips Contact ownership validation and Contact/Customer auto-association only for that server-created document, while preserving the normal controller behavior for every other ticket. It also assigns a deterministic ticket key for idempotency. See [Implemented anonymous submission boundary](#8-implemented-anonymous-submission-boundary).
 
 This is an application-level extension, not a framework fork change. The exact framework commit used by deployment must still be verified before release.
 
@@ -335,7 +335,7 @@ The `HD Ticket` controller also contains a helper that can grant Guest read/writ
 
 The initial implementation on `feat/anonymous-tickets` consists of:
 
-- `helpdesk/anonymous_tickets.py`: guest options, pending submission, email verification, and native ticket creation.
+- `helpdesk/anonymous_tickets.py`: guest options, pending OTP challenge, OTP verification/resend, and native ticket creation.
 - `helpdesk/extends/anonymous_ticket.py`: a narrow `HDTicket` mixin that skips Contact ownership checks and Contact/Customer auto-association only when the server sets the transient verified-submission flag.
 - `helpdesk/hooks.py`: registers the mixin with `extend_doctype_class`.
 - `studio/helpdesk/studio_page/guest_new_ticket/`: a guest-enabled Studio page at `/help/guest/new`.
