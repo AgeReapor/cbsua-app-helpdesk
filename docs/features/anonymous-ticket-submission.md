@@ -72,13 +72,34 @@ OTP email is sent using Frappe's supported template interface:
 
 The shared sender uses post-commit queueing (`now=True`) and message redaction after successful delivery. Queueing is not a delivery receipt; the outgoing Email Account and transport must still be configured correctly.
 
-### Agent reply email and read-tracking pixel
+### Customer-facing agent replies
 
-Frappe Email Queue can append an email-open tracking image to outgoing messages when **Track Email Status** is enabled on the selected outgoing Email Account and the message is linked to a Communication. The tracking image calls `frappe.core.doctype.communication.email.mark_email_as_seen`.
+Customer-facing agent replies use the native Helpdesk communication and Email Queue workflow, but the default reply template is intentionally minimal:
 
-During localhost development, the generated tracking URL uses a local-only hostname such as `cbsua-helpdesk.localhost`, which external recipients cannot resolve. The CBSUA Pilot development setup should therefore disable **Track Email Status** on the outgoing Email Account used by Helpdesk. This removes the pixel from emails sent through that account; it does not change the reply body, attachments, or delivery behavior. The setting applies to all emails sent through that account, not only anonymous-ticket replies.
+```html
+<div>
+  {{ message }}
+  <p>Regards,<br />CBSUA Support</p>
+</div>
+```
 
-When a permanent public email hostname is finalized and email-open tracking is intentionally required, the team can decide whether to re-enable tracking and configure Frappe's canonical public HTTPS hostname. Until then, keep tracking disabled in localhost development rather than emitting unreachable tracking URLs.
+The customer receives the agent's reply followed by the generic **CBSUA Support** signature. The default message does not add a ticket heading, portal call-to-action, portal URL, logo, or tracking image. The communication remains linked to the native ticket so the agent workspace retains its normal conversation history.
+
+A site-specific custom value in `HD Settings.reply_via_agent_email_content` can override the default. The email-presentation migration clears that field once so the generic template takes effect on existing sites.
+
+### Email-open tracking policy
+
+Frappe Email Queue injects an email-open tracking image when the selected outgoing Email Account has `track_email_status` enabled and the queued message is linked to a Communication. The image calls `frappe.core.doctype.communication.email.mark_email_as_seen`. On localhost, the generated URL can contain a hostname such as `cbsua-helpdesk.localhost`, which external recipients cannot resolve.
+
+CBSUA Helpdesk now disables this behavior as an application policy:
+
+- A post-model-sync patch turns off `track_email_status` for existing Email Accounts.
+- A Helpdesk `Email Account.before_insert` hook turns it off for newly created accounts.
+- The reply template itself contains no tracking pixel and does not remove or alter legitimate agent-supplied inline images.
+
+This is intentionally an account-wide policy: email-open tracking is disabled for outgoing messages sent through CBSUA Helpdesk Email Accounts, not only anonymous-ticket replies. The communication record, message threading, attachments, delivery workflow, and agent-side history remain intact.
+
+The permanent outbound email address/domain has not yet been finalized. When it is, the team can separately review whether email-open tracking is useful and intentionally reintroduce it with a publicly reachable HTTPS hostname. Do not re-enable it merely to fix a localhost URL.
 
 ## Frontend integration
 
@@ -125,3 +146,7 @@ The Helpdesk feature branch is not included in the standard deployment image unt
 - [Office administration](../configuration/offices.md)
 - [CBSUA Helpdesk branding](../ui/cbsua-branding.md)
 - [CBSUA Helpdesk UI styling](../ui/cbsua-ui-styling.md)
+
+## Current validation status
+
+The project owner has confirmed in the CBSUA Pilot environment, using a fresh internet connection, that anonymous submission, OTP verification, native ticket creation, and agent reply delivery to the requester all work end to end. The customer-facing email presentation change described above is implemented in source but still requires a post-migration Pilot email test. Backend tests and frontend builds must be run on the compatible Frappe v17 bench before release.
