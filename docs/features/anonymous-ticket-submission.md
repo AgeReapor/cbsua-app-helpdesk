@@ -19,7 +19,7 @@ The guest endpoints live in `helpdesk/anonymous_tickets.py`:
 |---|---|
 | `get_guest_form_options` | Return enabled offices and request types only |
 | `start_guest_submission` | Validate allowlisted fields, cache a short-lived pending request, and send verification email |
-| `verify_guest_submission` | Consume a verified token and create one native ticket |
+| `verify_guest_submission(challenge_id, otp)` | Verify the challenge-bound OTP and create one native ticket |
 
 The endpoints are explicitly guest-whitelisted and method-restricted. Submission and verification have IP-based rate limits. The current pending record is an OTP challenge that expires after 10 minutes. The six-digit code is generated with `secrets`, and only a challenge-bound HMAC digest is cached. The customer enters the code on the same page; there is no link to open and no scanner-prefetch behavior. Successful verification can create only one ticket; retries after a successful commit return that same ticket reference. See the current Email OTP section below. The verification URL is built from the configured site hostname with Host-header overrides disabled and the token is URL-encoded. A site-scoped Redis lock is held until the surrounding database transaction commits or rolls back, preventing a second request from racing the first request's uncommitted insert. The deterministic native ticket key is also backed by a `unique` constraint added to the `HD Ticket.key` DocType field as a final database concurrency guard. This changes the schema on migration; verify existing key values contain no duplicates and confirm index creation on a representative copy before release.
 
@@ -38,9 +38,9 @@ The native portal ticket lifecycle skips acknowledgement email. After verified c
 - Template: `helpdesk/templates/emails/guest_ticket_verification.html`, with a plain-text companion at `helpdesk/templates/emails/guest_ticket_verification.txt`.
 - The backend selects both formats through Frappe's supported `frappe.sendmail(template="guest_ticket_verification", args=context)` interface. Frappe loads the matching HTML and optional plain-text templates internally; do not pass `text_content` directly because that keyword is not supported by this Frappe v17 fork. Dynamic values are HTML-escaped. The message shows CBSUA Helpdesk branding and only the request subject, office, and request type; it intentionally omits the full description.
 - **Superseded:** the former absolute verification URL and canonical-host requirement were removed by the inline OTP implementation. The active flow does not generate or redirect to a verification URL.
-- Opening the link does not consume it. A human must press the confirmation button. This is important because email security scanners commonly prefetch links.
+- The OTP is entered explicitly in the guest form; there is no link to prefetch or consume. Ticket creation occurs only after the server verifies the code.
 - Verification responses distinguish `invalid_or_expired`, `processing`, and `temporarily_unavailable`. The portal offers a retry for temporary failures and does not recommend creating a second request while the original outcome is uncertain.
-- Cache/lock exceptions are logged server-side with traceback context but without logging the bearer token. Ticket insertion failures are allowed to roll back normally.
+- Cache/lock exceptions are logged server-side with traceback context but without logging the OTP or challenge secret. Ticket insertion failures are allowed to roll back normally.
 
 ## Privacy and security constraints
 
