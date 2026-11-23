@@ -79,3 +79,19 @@ The deployment repository currently documents `develop` as the canonical CBSUA H
 - No inbound email reply guarantee.
 - No email delivery guarantee for every status transition; native realtime notifications remain user-based.
 - No automatic account association. That remains a separate future feature requiring explicit identity proof and audit history.
+
+
+## Planned shared CBSUA login page
+
+The shared Frappe `/login` page is planned to serve both internal system users and customers/requesters. The agreed login-page changes are:
+
+- Keep **Continue** and **Login with Email Link** as the primary authentication actions.
+- Add **Submit a ticket without logging in** as a clickable text link immediately below those actions. It navigates to the fixed local route `/help/guest/new`.
+- Replace **“Sign In Welcome! Please sign in to continue”** with **“Welcome back to CBSUA Helpdesk”** (or an approved close equivalent).
+- Replace the login-page logo and favicon with the existing CBSUA brand assets. The canonical artwork currently exists in the Helpdesk repository at `desk/src/assets/logos/` and `desk/public/cbsua/`; verify the correct public URL/serving path before referencing it from Frappe.
+
+This is a change from the earlier Helpdesk-origin-only CTA proposal. The link should be visible on the generic CBSUA `/login` page regardless of the page from which the visitor arrived. The existing `helpdesk_guest=1` marker and Referer gate are therefore considered interim visibility logic; remove or simplify them only after verifying their other redirect uses. The CTA remains navigation only and must not weaken the guest API or ticket permissions.
+
+Implementation belongs primarily in the coordinated CBSUA Frappe fork's login template/context, with the Helpdesk repository serving as the canonical source of CBSUA logo/favicon artwork. Keep the deployment source lock unchanged until a separately reviewed release integration.
+
+**Status: planned, not implemented or runtime-validated.**
