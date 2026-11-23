@@ -43,7 +43,7 @@
       <h1 class="text-xl font-semibold text-ink-gray-9">
         {{
           verificationErrorCode === 'invalid_or_expired'
-            ? __('Verification link expired')
+            ? __('Verification link expired or invalid')
             : verificationErrorCode === 'processing'
               ? __('Verification is already in progress')
               : __('Verification temporarily unavailable')
