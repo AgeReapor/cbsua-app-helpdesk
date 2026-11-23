@@ -475,3 +475,16 @@ The receiving agent should replace/update this section at the next handoff:
 **Latest feature branch head at handoff refresh:** `f047ffca3569c1916ea21a3b700f5fbb9ab18fc5`. This is the Helpdesk feature branch only; no changes were made to the framework or deployment repositories. The latest documentation refresh follows the latest implementation commits.
 
 **Final source formatting commits:** backend email-renderer signature `7b6fc8e76378f661633ccd95263ba10bec6548b2`; focused test formatting `d098e6b3cdeae813c6cdaf29fb4c719591c7cc60`. The working branch head before this handoff-document refresh was `d098e6b3cdeae813c6cdaf29fb4c719591c7cc60`.
+
+---
+
+## Pilot HTTP 500 on anonymous submission — 2026-11-23
+
+- **Symptom reported:** submitting the guest form at `/help/guest/new` returns an Internal Server Error.
+- **Root cause identified from source compatibility:** `start_guest_submission()` passed `text_content=` to `frappe.sendmail()`. The exact Frappe v17 fork branch `feat/anonymous-helpdesk-login-cta` exposes `frappe.email.sendmail(..., template=None, args=None, ...)`, but has no `text_content` parameter. This raises a Python unexpected-keyword `TypeError` when the endpoint queues the verification email.
+- **Correct implementation:** use `frappe.sendmail(recipients=[...], subject=..., template="guest_ticket_verification", args=email_context)`. Frappe internally calls `get_email_from_template` and supplies both the HTML and optional text alternative to its queue builder. The Helpdesk backend now prepares only the template context and delegates both renderings to the supported Frappe API.
+- **Helpdesk commits:** backend correction `34ef87ead0c95d1f9382e5bc10453acf510ac842`; test update `26b84a3e7f5868253e761a08643def3ab46b7c4d`.
+- **Framework source inspected:** `AgeReapor/cbsua-app-frappe`, `feat/anonymous-helpdesk-login-cta`, `frappe/email/__init__.py`. Its sendmail signature documents and implements `template` and `args`; it does not accept `text_content`.
+- **Important correction to the earlier handoff note:** the previous claim that Helpdesk could pass `text_content` directly to `frappe.sendmail` was incorrect. The supported Frappe template interface is now used.
+- **Validation state:** source-level root cause and correction only. No live Pilot request, bench test, email queue, or rendered-message validation has been run. Deploy/restart the Helpdesk app containing this commit, retry one guest submission, and inspect the Frappe Error Log if a 500 remains. If it persists, capture the server traceback and failing request method; do not assume it is still the same issue.
+- **Next checks:** run the focused anonymous-ticket test module; confirm `start_guest_submission` queues the named email template; confirm both HTML and text alternatives appear in the queued message; confirm the generated verification link uses the public gateway origin; then complete the verify/replay/expiry checks.
