@@ -403,7 +403,7 @@ Remove the current prominent anonymous-request action from the top of the public
 ### Cross-repository implementation boundary
 
 - Helpdesk owns the route-specific guest access exception, Studio session guard, homepage conditional rendering and guest submission page.
-- The framework fork may own a conditional login-template link if there is no supported Helpdesk-specific login extension point. Any such change must be gated by Helpdesk-origin context to avoid changing unrelated login experiences.
+- The framework fork may own a conditional login-template link if there is no supported Helpdesk-specific login extension point. The CBSUA login template is intentionally branded for this deployment and shows the guest ticket link on every login entry. Confirm that this deployment is not intended for unrelated independently branded tenants.
 - The UI library has no identified responsibility for this change.
 - The deployment repository owns source locks and pilot release integration.
 
