@@ -10,7 +10,7 @@ from frappe.tests.utils import FrappeTestCase
 from helpdesk.anonymous_tickets import (
     _build_verification_url,
     _cache_key,
-    _render_guest_verification_email,
+    _guest_verification_email_context,
     _ticket_key,
     _token_digest,
     _validate_submission,
@@ -60,7 +60,7 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         self.assertFalse(get_url.call_args.kwargs["allow_header_override"])
         self.assertEqual(result, get_url.return_value)
 
-    def test_verification_email_renders_html_and_text_with_minimal_context(self):
+    def test_verification_email_context_is_minimal_and_template_ready(self):
         payload = {
             "full_name": "Campus Visitor",
             "email": "visitor@example.com",
@@ -75,10 +75,6 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
                 side_effect=["ICT Office", "Technical Support"],
             ),
             patch(
-                "helpdesk.anonymous_tickets.get_email_from_template",
-                return_value=("<html>branded</html>", "plain text"),
-            ) as render,
-            patch(
                 "helpdesk.anonymous_tickets.get_url",
                 side_effect=[
                     "https://helpdesk.example/help/guest/new?verify=token",
@@ -86,14 +82,15 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
                 ],
             ),
         ):
-            result = _render_guest_verification_email(payload, "a" * 48)
+            context = _guest_verification_email_context(payload, "a" * 48)
 
-        self.assertEqual(result, ("<html>branded</html>", "plain text"))
-        context = render.call_args.args[1]
+
         self.assertEqual(context["office"], "ICT Office")
         self.assertEqual(context["request_type"], "Technical Support")
         self.assertNotIn("description", context)
         self.assertEqual(context["expires_in_minutes"], 30)
+        self.assertIn("verify_url", context)
+        self.assertIn("logo_url", context)
 
     def test_verification_lock_failure_is_reported_as_temporary(self):
         with (
