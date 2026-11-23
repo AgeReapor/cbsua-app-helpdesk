@@ -1,6 +1,6 @@
 """Focused tests for the anonymous ticket submission boundary."""
 
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from urllib.parse import quote
 from uuid import UUID
 
@@ -63,6 +63,33 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         with (
             patch("helpdesk.anonymous_tickets.frappe.db.get_value", return_value=None),
             patch("helpdesk.anonymous_tickets.frappe.cache.lock", side_effect=RuntimeError),
+            patch("helpdesk.anonymous_tickets.frappe.log_error"),
+        ):
+            result = verify_guest_submission("a" * 48)
+
+        self.assertEqual(
+            result, {"success": False, "code": "temporarily_unavailable"}
+        )
+
+    def test_expired_verification_token_is_reported_without_creating_a_ticket(self):
+        lock = Mock()
+        lock.acquire.return_value = True
+        with (
+            patch("helpdesk.anonymous_tickets.frappe.db.get_value", return_value=None),
+            patch("helpdesk.anonymous_tickets.frappe.cache.lock", return_value=lock),
+            patch("helpdesk.anonymous_tickets.frappe.cache.get_value", return_value=None),
+        ):
+            result = verify_guest_submission("a" * 48)
+
+        self.assertEqual(result, {"success": False, "code": "invalid_or_expired"})
+
+    def test_verification_cache_outage_is_reported_as_temporary(self):
+        lock = Mock()
+        lock.acquire.return_value = True
+        with (
+            patch("helpdesk.anonymous_tickets.frappe.db.get_value", return_value=None),
+            patch("helpdesk.anonymous_tickets.frappe.cache.lock", return_value=lock),
+            patch("helpdesk.anonymous_tickets.frappe.cache.get_value", side_effect=RuntimeError),
             patch("helpdesk.anonymous_tickets.frappe.log_error"),
         ):
             result = verify_guest_submission("a" * 48)
