@@ -424,3 +424,8 @@ The shared `/login` page now has source changes for both internal system users a
 Implementation commits: Frappe login context `ca22bad01035014b33a6cb5b9b9277468187f028`, Frappe login template `3bea4a3b153e6805c284043c4332933a3e690bd3`, Helpdesk session redirect cleanup `a85fed011fd195e3bf763c72d936bbaa09b2ceab`.
 
 **Status:** Implemented in source on the coordinated feature branches. Deployment source locks remain unchanged. Python tests, Frappe/Studio builds, asset delivery, browser behavior and login regression checks have not been run; do not treat this as runtime-validated.
+
+
+## Guest submission HTTP 500 — email API compatibility correction (2026-11-23)
+
+The guest submission endpoint queues the verification message using Frappe's supported email-template API: `frappe.sendmail(recipients=..., subject=..., template="guest_ticket_verification", args=context)`. The Frappe v17 fork's `frappe.email.sendmail` signature accepts `template` and `args`, internally calls `get_email_from_template`, and passes the rendered HTML and optional plain-text alternative to the queue builder. It does **not** accept a `text_content` keyword. Do not pass the output of `get_email_from_template` back to `frappe.sendmail` using a `text_content` argument. The previous implementation did so and caused a Python argument TypeError on guest submission. This is corrected in Helpdesk commit `34ef87ead0c95d1f9382e5bc10453acf510ac842`; regression test update is `26b84a3e7f5868253e761a08643def3ab46b7c4d`. Runtime validation remains outstanding.
