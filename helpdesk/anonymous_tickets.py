@@ -244,7 +244,11 @@ def verify_guest_submission(challenge_id: str, otp: str) -> dict:
         return {"success": False, "code": "processing"}
 
     cache_key = _cache_key(challenge_id)
-    challenge = frappe.cache.get_value(cache_key)
+    try:
+        challenge = frappe.cache.get_value(cache_key)
+    except Exception:
+        frappe.log_error(message=frappe.get_traceback(), title="Guest ticket OTP cache unavailable")
+        return {"success": False, "code": "temporarily_unavailable"}
     if not isinstance(challenge, dict):
         return {"success": False, "code": "invalid_or_expired"}
     if challenge.get("attempts", 0) >= MAX_OTP_ATTEMPTS:
@@ -306,7 +310,11 @@ def resend_guest_submission_otp(challenge_id: str) -> dict:
         return {"success": False, "code": "processing"}
 
     cache_key = _cache_key(challenge_id)
-    challenge = frappe.cache.get_value(cache_key)
+    try:
+        challenge = frappe.cache.get_value(cache_key)
+    except Exception:
+        frappe.log_error(message=frappe.get_traceback(), title="Guest ticket OTP resend cache unavailable")
+        return {"success": False, "code": "temporarily_unavailable"}
     if not isinstance(challenge, dict):
         return {"success": False, "code": "invalid_or_expired"}
     if challenge.get("resends", 0) >= MAX_OTP_RESENDS:
