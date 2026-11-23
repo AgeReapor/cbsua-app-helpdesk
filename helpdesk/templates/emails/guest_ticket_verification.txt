@@ -1,17 +1,16 @@
 {% if full_name %}Hello {{ full_name }},{% else %}Hello,{% endif %}
 
-We received a request to contact CBSUA Helpdesk using this email address. Confirm that you own this address to submit your request. We will create your ticket only after you confirm.
+Your CBSUA Helpdesk email verification code is:
+
+{{ otp }}
+
+Enter this code on the request form. It expires in {{ expires_in_minutes }} minutes and can be used once. Do not share it with anyone.
 
 Request: {{ subject }}
 Office: {{ office }}
 Request type: {{ request_type }}
 
-Confirm email and submit request:
-{{ verify_url }}
-
-This secure link expires in {{ expires_in_minutes }} minutes and can be used once.
-
-If you did not submit this request, ignore this message. No ticket will be created unless the email address is confirmed.
+If you did not submit this request, ignore this message. No ticket will be created without verification.
 
 Thank you,
 CBSUA Helpdesk
