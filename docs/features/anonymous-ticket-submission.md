@@ -141,18 +141,13 @@ Run `pilot frappe --site <disposable-site> run-tests --module helpdesk.tests.tes
 
 ## Outbound OTP delivery: investigation and planned correction (2026-11-23)
 
-The current OTP implementation calls frappe.sendmail without now=True in both start_guest_submission and resend_guest_submission_otp. In the deployed CBSUA Frappe source, this means delayed Email Queue delivery by the scheduler. The shared Login Link endpoint uses now=True, which schedules the queue record's send operation after the current database transaction commits. This difference is the leading explanation for why Login Link messages arrive while OTP and resend messages may remain pending.
+The OTP start and resend endpoints now call the shared `_send_guest_otp_email()` helper. It uses the supported Frappe template interface, sets `now=True` to register the Email Queue send operation after transaction commit (matching the working Login Link endpoint), and sets `redact_message_after_send=True` to reduce retention of the OTP body after successful delivery. Both endpoints report that the email was queued; this is not a delivery receipt.
 
-**Not yet confirmed:** inspect actual Pilot Email Queue records and scheduler/worker state before treating this as the definitive root cause. Frappe's queue flush runs through the scheduler, selects eligible Not Sent or Partially Sent rows older than 10 seconds, and exits when email is muted or suspend_email_queue=1. Queue status/error fields are the authoritative runtime evidence.
+The source-level cause was a difference in delivery mode: OTP messages previously depended on the scheduled delayed queue flush, while Login Link uses post-commit sending. This plausibly explains the partial delivery symptom, but the live Pilot Email Queue and transport must still be inspected to confirm the runtime cause. `now=True` still uses Frappe's Email Queue and does not guarantee inbox placement.
 
-### Planned correction
+### Implementation and test coverage
 
-- Pass now=True to both initial OTP and resend frappe.sendmail calls, matching frappe.www.login.send_login_link on the CBSUA framework branch. This still creates an Email Queue record and attempts delivery after commit; it does not bypass Frappe's queue or guarantee inbox placement.
-- Pass redact_message_after_send=True to reduce retention of OTP content after successful delivery.
-- Consolidate both paths through one helper and preserve the current template, rate limits, HMAC challenge digest, 10-minute expiry, attempt limit, cooldown, resend limit, and resend invalidation.
-- Add tests for sendmail arguments, rendered HTML/text template, queue creation, post-commit send, transport failure/retry, and challenge/cache consistency when resend delivery fails.
-- Keep API responses honest: queue acceptance is not a delivery receipt. Surface transport errors through Email Queue/Error Log and show a safe retry state without encouraging duplicate ticket submissions.
-
-### Pilot acceptance test
-
-Submit a guest request and immediately inspect its Email Queue record. Confirm it reaches Sent and the code arrives promptly. Repeat with resend and confirm the prior code is invalidated. Compare both with a Login Link record. On a disposable site, test a transport failure and verify queue error/retry behavior without logging the OTP. Confirm the scheduler still flushes ordinary delayed email such as status notices and acknowledgements.
+- A shared helper keeps recipient, template, subject, send timing, and message redaction consistent between initial OTP and resend.
+- Focused tests assert the helper uses the correct recipient/template context, `now=True`, and `redact_message_after_send=True` for both initial and resend mail.
+- The existing challenge security controls remain unchanged: HMAC digest, 10-minute expiry, five attempts, 60-second cooldown, three resends, and challenge rotation.
+- Pilot validation remains required: verify Email Queue records and status, actual mailbox delivery, resend invalidation, SMTP failure/retry, and ordinary delayed email queue processing.
