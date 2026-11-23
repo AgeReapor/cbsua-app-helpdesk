@@ -523,7 +523,7 @@ The receiving agent should replace/update this section at the next handoff:
 ## Outbound OTP email delivery investigation — 2026-11-23
 
 - **Observed behavior:** guest OTP and resend messages are not arriving; the shared Frappe Login Link email still arrives.
-- **Repository evidence:** Helpdesk helpdesk/anonymous_tickets.py calls frappe.sendmail without now=True in both OTP paths. CBSUA Frappe feat/ui/login implements frappe.www.login.send_login_link with now=True. In this v17 source, sendmail defaults to delayed=True; it creates an Email Queue record. now=True registers that record's send operation after transaction commit. The periodic queue flush is registered under Frappe scheduler all events.
+- **Historical investigation finding (superseded by the implementation update below):** Helpdesk OTP originally called frappe.sendmail without now=True, while CBSUA Frappe Login Link uses now=True. This was the likely queue-timing mismatch. The current OTP implementation now matches the Login Link post-commit send mode through _send_guest_otp_email().
 - **Leading diagnosis:** OTP/resend are dependent on scheduler Email Queue flushing while Login Link uses post-commit immediate queue sending. A suspended queue or unhealthy scheduler/worker can therefore produce the reported partial functionality. This remains a hypothesis until the Pilot Email Queue and scheduler state are inspected.
 - **Email Account override audit:** Helpdesk's CustomEmailAccount overrides inbound message parsing and handling; it does not override outgoing account selection or sendmail.
 - **API semantics:** OTP start/resend currently return success when the message is queued, not when SMTP delivery or inbox receipt is confirmed.
