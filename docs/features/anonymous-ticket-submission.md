@@ -36,7 +36,7 @@ The native portal ticket lifecycle skips acknowledgement email. After verified c
 ### Verification email and failure handling
 
 - Template: `helpdesk/templates/emails/guest_ticket_verification.html`, with a plain-text companion at `helpdesk/templates/emails/guest_ticket_verification.txt`.
-- The backend loads both formats through Frappe's Jinja email-template loader and passes the plain-text version to `frappe.sendmail` as `text_content`. Dynamic values are HTML-escaped. The message shows CBSUA Helpdesk branding and only the request subject, office, and request type; it intentionally omits the full description.
+- The backend selects both formats through Frappe's supported `frappe.sendmail(template="guest_ticket_verification", args=context)` interface. Frappe loads the matching HTML and optional plain-text templates internally; do not pass `text_content` directly because that keyword is not supported by this Frappe v17 fork. Dynamic values are HTML-escaped. The message shows CBSUA Helpdesk branding and only the request subject, office, and request type; it intentionally omits the full description.
 - The absolute verification URL uses `get_url(..., allow_header_override=False)`, so a caller-controlled Host header cannot redirect the bearer link to another host. The site's configured canonical hostname and gateway scheme/port must match the actual externally reachable gateway.
 - Opening the link does not consume it. A human must press the confirmation button. This is important because email security scanners commonly prefetch links.
 - Verification responses distinguish `invalid_or_expired`, `processing`, and `temporarily_unavailable`. The portal offers a retry for temporary failures and does not recommend creating a second request while the original outcome is uncertain.
@@ -104,3 +104,8 @@ This supersedes the earlier Helpdesk-origin-only CTA proposal. The link is visib
 Implementation commits: Frappe context `ca22bad01035014b33a6cb5b9b9277468187f028`, Frappe template `3bea4a3b153e6805c284043c4332933a3e690bd3`, Helpdesk session cleanup `a85fed011fd195e3bf763c72d936bbaa09b2ceab`. The deployment source lock remains unchanged.
 
 **Status: implemented in source; not yet build-, browser-, or runtime-validated.**
+
+
+### Submission HTTP 500 compatibility fix (2026-11-23)
+
+The pilot's guest form submission returned an Internal Server Error because the backend passed the unsupported `text_content` keyword to `frappe.sendmail`. The framework's `frappe.email.sendmail` API accepts `template` and `args`, and handles the paired HTML/plain-text templates internally. The endpoint now uses that API. Source commits: `34ef87ead0c95d1f9382e5bc10453acf510ac842` (backend) and `26b84a3e7f5868253e761a08643def3ab46b7c4d` (test update). This correction has not yet been confirmed against the live Pilot instance.
