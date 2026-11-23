@@ -23,3 +23,30 @@ class TestCustomerReplyEmailPresentation(FrappeTestCase):
         account = frappe._dict({"track_email_status": 1})
         disable_email_open_tracking(account)
         self.assertEqual(account.track_email_status, 0)
+
+    def test_migration_disables_existing_accounts_and_clears_old_reply_template(self):
+        with (
+            patch(
+                "helpdesk.patches.disable_email_open_tracking.frappe.get_all",
+                return_value=["Outgoing A", "Outgoing B"],
+            ),
+            patch(
+                "helpdesk.patches.disable_email_open_tracking.frappe.db.set_value"
+            ) as set_value,
+            patch(
+                "helpdesk.patches.disable_email_open_tracking.frappe.db.exists",
+                return_value=True,
+            ),
+            patch(
+                "helpdesk.patches.disable_email_open_tracking.frappe.db.set_single_value"
+            ) as set_single_value,
+        ):
+            from helpdesk.patches.disable_email_open_tracking import execute
+
+            execute()
+
+        self.assertEqual(set_value.call_count, 2)
+        self.assertEqual(
+            set_single_value.call_args.args,
+            ("HD Settings", "reply_via_agent_email_content", ""),
+        )
