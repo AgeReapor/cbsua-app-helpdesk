@@ -1,10 +1,10 @@
-"""Disable email-open tracking pixels for CBSUA Helpdesk customer mail."""
+"""Disable email-open tracking for existing CBSUA Helpdesk accounts."""
 
 import frappe
 
 
 def execute():
-    """Turn off tracking on existing accounts and use the plain reply template."""
+    """Disable remote read pixels and reset the customer reply template."""
     for account in frappe.get_all(
         "Email Account", filters={"track_email_status": 1}, pluck="name"
     ):
@@ -14,4 +14,3 @@ def execute():
 
     if frappe.db.exists("DocType", "HD Settings"):
         frappe.db.set_single_value("HD Settings", "reply_via_agent_email_content", "")
-
