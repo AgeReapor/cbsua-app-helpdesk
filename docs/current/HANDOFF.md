@@ -24,14 +24,15 @@ The revised intended flow is:
 
 1. Guest opens `/help`.
 2. If the knowledge base is private, the existing policy sends the Guest to the Frappe login page.
-3. When login was initiated by the Helpdesk portal, the login page shows a secondary **Submit a request without signing in** link below the existing login options (including **Continue** and **Login with Email Link**, where enabled).
-4. The secondary link opens `/help/guest/new` directly.
-5. The guest form submits the request and sends an email verification link. A ticket is not created merely by opening the email link; the visitor confirms on the page.
-6. After successful verification, the visitor sees the native ticket reference and is told that requester-facing updates/replies are sent by email.
+3. The shared CBSUA `/login` page shows **Submit a ticket without logging in** as clickable text immediately below **Continue** and **Login with Email Link**.
+4. The login page uses the generic CBSUA Helpdesk welcome heading and CBSUA logo/favicon, and is intended for both system users and customers/requesters.
+5. The secondary link opens the fixed local route `/help/guest/new` directly.
+6. The guest form submits the request and sends an email verification link. A ticket is not created merely by opening the email link; the visitor confirms on the page.
+7. After successful verification, the visitor sees the native ticket reference and is told that requester-facing updates/replies are sent by email.
 
 When the KB is public, Guests may browse it, but must not see authenticated-only **Raise a ticket** or **View my tickets** actions. Do not add a second prominent anonymous button to the KB homepage. Authenticated users keep their existing portal actions and routes.
 
-The login CTA is a navigation affordance only. It must not act as an authorization control or weaken the portal's access policy.
+The login CTA is a navigation affordance only. It must not act as an authorization control or weaken the portal's access policy. The new shared-login visibility and branding plan supersedes the earlier Helpdesk-origin-only CTA proposal.
 
 ---
 
@@ -53,7 +54,7 @@ The customer portal at `/help` is the Helpdesk **Studio App**. It is not a separ
 
 - Helpdesk's `pyproject.toml` declares Frappe `>=17.0.0-dev,<18.0.0` and Telephony `>=0.0.1,<1.0.0`.
 - The current source uses Frappe's `extend_doctype_class` hook for the HD Ticket mixin. The mechanism was confirmed in the CBSUA Frappe source previously inspected, but the exact framework SHA in the deployment source lock still needs to be checked before release.
-- The Frappe login page is shared by all apps. A Helpdesk-specific CTA must be gated by reliable Helpdesk-origin context; never display it unconditionally on all Frappe login pages.
+- The Frappe login page is shared by the CBSUA deployment. The current product decision is to make it a generic CBSUA Helpdesk sign-in experience and show the guest-submission link on `/login` for both system users and customers. Confirm that the deployment is not serving independently branded tenants before applying CBSUA branding globally.
 - The UI library fork is not an appropriate place for CBSUA Helpdesk access policy.
 - Deployment documentation identifies `develop` as the canonical build branch. A feature branch is not automatically present in the pilot image. Verify the actual workflow and `config/source-lock.json`; use immutable SHAs for release reproducibility.
 
@@ -429,3 +430,43 @@ The receiving agent should replace/update this section at the next handoff:
 - **Next concrete action:**
 
 **Final caution:** Source inspection and documentation commits are not runtime validation. Keep the feature marked in progress until the acceptance criteria above have real test evidence.
+
+
+## Planned shared CBSUA login-page experience — revised 2026-11-23
+
+This is the current product direction and supersedes the earlier Helpdesk-origin-only visibility rule for the login-page guest CTA.
+
+### Intended experience
+
+The shared `/login` page is to become a generic CBSUA Helpdesk sign-in and ticket-entry page for both internal system users (administrators, managers, agents and other staff) and customers/requesters:
+
+1. Keep the existing **Continue** and **Login with Email Link** actions and their authentication behavior.
+2. Place a plain, clearly clickable secondary text link immediately beneath the main login actions: **Submit a ticket without logging in**.
+3. The link must navigate to the fixed local route `/help/guest/new`. Do not accept a user-controlled destination or external redirect.
+4. Replace the generic heading **“Sign In Welcome! Please sign in to continue”** with **“Welcome back to CBSUA Helpdesk”** (or a very close CBSUA-branded equivalent approved during implementation).
+5. Replace the login page's current logo and favicon with the existing CBSUA brand artwork. The Helpdesk branch already contains CBSUA assets under `desk/src/assets/logos/` and `desk/public/cbsua/`, including `cbsua-logo-2400.png`, favicon sizes, `favicon.ico`, and `apple-touch-icon.png`. Reuse those approved assets; do not create a visually different duplicate brand mark.
+
+### Important change from the earlier proposal
+
+The CTA is now intended to be part of the generic CBSUA `/login` experience, not hidden unless the request contains `helpdesk_guest=1` or a Helpdesk-origin Referer. The current conditional implementation in the coordinated Frappe branch is therefore an interim implementation and must be reviewed/refactored as part of this planned UI change. Keep the CTA available on the shared login page for both system users and customers.
+
+This is a product-level branding decision for the CBSUA deployment. Confirm that the CBSUA Frappe fork is not expected to serve unrelated third-party apps or tenants with independent branding before making the login page globally CBSUA-specific.
+
+### Implementation ownership and sequence
+
+- **Frappe fork:** owns the shared `frappe/www/login.html` template and login-page context. Update the heading, place the CTA directly below the authentication actions, and update the login-page logo/favicon references. Keep password, email-link, LDAP/social login and error/disabled states intact.
+- **Helpdesk fork:** owns the canonical CBSUA image assets and the guest destination implementation. Confirm the asset URLs are actually served by the Frappe website/login page. If Frappe cannot safely reference the Helpdesk static assets at runtime, copy the required approved assets into a clearly named Frappe public-asset directory and document the source paths and hashes so the artwork remains traceable.
+- **Frappe/Helpdesk integration:** retain the fixed `/help/guest/new` destination. The old `helpdesk_guest=1` marker and Referer gate may become unnecessary for showing the CTA; remove or simplify them only after confirming they are not used for any other redirect behavior. Preserve safe post-login return handling independently.
+- **Deployment repository:** owns the coordinated immutable source refs and rollout; do not change its source lock in this documentation-only task.
+
+### Acceptance checks
+
+- The exact text link is visible below **Continue** and **Login with Email Link** on `/login`, without being rendered as a third primary button.
+- The link works whether the visitor arrived from Helpdesk, another CBSUA page, or directly at `/login`.
+- The link always opens `/help/guest/new`; it never accepts an external or arbitrary redirect target.
+- The heading, logo, browser favicon, and touch icon consistently use CBSUA branding.
+- Password login, email-link login, optional LDAP/social login, error states, keyboard navigation, screen-reader naming, and mobile layout remain usable.
+- A Guest can reach the guest submission form when the knowledge base is private, while authenticated-only ticket pages and ticket data remain protected.
+- Existing system-user login and post-login redirect behavior remain unchanged apart from the agreed branding.
+
+**Status:** Planned. This documentation update does not change the Frappe login source, assets, or deployment source lock, and does not establish runtime validation.
