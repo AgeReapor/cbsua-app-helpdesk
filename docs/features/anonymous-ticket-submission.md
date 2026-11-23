@@ -37,7 +37,7 @@ The native portal ticket lifecycle skips acknowledgement email. After verified c
 
 - Template: `helpdesk/templates/emails/guest_ticket_verification.html`, with a plain-text companion at `helpdesk/templates/emails/guest_ticket_verification.txt`.
 - The backend selects both formats through Frappe's supported `frappe.sendmail(template="guest_ticket_verification", args=context)` interface. Frappe loads the matching HTML and optional plain-text templates internally; do not pass `text_content` directly because that keyword is not supported by this Frappe v17 fork. Dynamic values are HTML-escaped. The message shows CBSUA Helpdesk branding and only the request subject, office, and request type; it intentionally omits the full description.
-- The absolute verification URL uses `get_url(..., allow_header_override=False)`, so a caller-controlled Host header cannot redirect the bearer link to another host. The site's configured canonical hostname and gateway scheme/port must match the actual externally reachable gateway.
+- **Superseded:** the former absolute verification URL and canonical-host requirement were removed by the inline OTP implementation. The active flow does not generate or redirect to a verification URL.
 - Opening the link does not consume it. A human must press the confirmation button. This is important because email security scanners commonly prefetch links.
 - Verification responses distinguish `invalid_or_expired`, `processing`, and `temporarily_unavailable`. The portal offers a retry for temporary failures and does not recommend creating a second request while the original outcome is uncertain.
 - Cache/lock exceptions are logged server-side with traceback context but without logging the bearer token. Ticket insertion failures are allowed to roll back normally.
@@ -51,7 +51,7 @@ The native portal ticket lifecycle skips acknowledgement email. After verified c
 - No Guest file upload is enabled.
 - User-provided description text is treated as plain text and HTML-escaped when stored.
 - Only the allowlisted office/request-type values are accepted and they are checked again when the token is consumed.
-- The verification token expires after 30 minutes and cannot create more than one ticket.
+- The current OTP challenge expires after 10 minutes and cannot create more than one ticket. See the current Email OTP section below for attempt, resend and replay controls.
 - Inbound email reply ownership validation has not been established. Do not advertise inbound email replies as a supported anonymous-ticket feature until the inbound sender identity path is audited and tested.
 - Realtime customer notifications resolve Frappe User records; they do not provide delivery to email-only requesters. Do not claim that every status transition emails an anonymous requester.
 
