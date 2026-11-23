@@ -64,30 +64,8 @@ def get_default_email_content(type: str) -> str:
     if type == "reply_via_agent":
         return """\
 <div>
-  <h2><strong>Ticket #{{ doc.name }}</strong></h2>
-  <h3>You have a new reply on this ticket</h3>
-  <br />
-  <div style="margin-bottom: 10px">
-    <h3 style="margin-bottom: 20px">Message</h3>
-    <div
-      style="
-        background: #f3f5f8;
-        padding: 10px;
-        border-radius: 4px;
-        border: 1px solid #e5e9ee;
-      "
-    >
-      {{ message }}
-    </div>
-  </div>
-  <p>Please visit the customer portal to reply to this message</p>
-  <a
-    class="btn btn-primary"
-    href="{{ ticket_url }}"
-    rel="noopener noreferrer"
-    target="_blank"
-  >View in Portal</a>
-  <br />
+  {{ message }}
+  <p>Regards,<br />CBSUA Support</p>
 </div>
 """
 
