@@ -16,6 +16,7 @@ import frappe
 from frappe import _
 from frappe.rate_limiter import rate_limit
 from frappe.utils import validate_email_address
+from frappe.utils.password import get_encryption_key
 
 OTP_TTL_SECONDS = 10 * 60
 OTP_LENGTH = 6
@@ -39,9 +40,7 @@ def _ticket_key(challenge_id: str) -> str:
 
 
 def _otp_digest(challenge_id: str, otp: str) -> str:
-    secret = frappe.conf.get("encryption_key")
-    if not secret:
-        frappe.throw(_("Email verification is temporarily unavailable."))
+    secret = get_encryption_key()
     message = f"{challenge_id}:{otp}".encode("utf-8")
     return hmac.new(secret.encode("utf-8"), message, hashlib.sha256).hexdigest()
 
