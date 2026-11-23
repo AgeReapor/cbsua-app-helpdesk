@@ -15,57 +15,31 @@
       </p>
     </div>
 
-    <div
-      v-else-if="verificationToken && !verificationError"
-      class="rounded-lg border border-outline-gray-2 p-6"
-    >
-      <h1 class="text-xl font-semibold text-ink-gray-9">
-        {{ __('Confirm your email') }}
-      </h1>
+    <div v-else-if="challengeId && !verified" class="rounded-lg border border-outline-gray-2 p-6">
+      <h1 class="text-xl font-semibold text-ink-gray-9">{{ __('Check your email') }}</h1>
       <p class="mt-2 text-ink-gray-6">
-        {{ __('Confirm that you own this email address to submit your helpdesk request.') }}
+        {{ __('Enter the six-digit code sent to {0}. The code expires in 10 minutes.', [maskedEmail]) }}
       </p>
-      <Button
-        class="mt-4"
-        size="md"
-        variant="solid"
-        :loading="verifying"
-        :label="__('Confirm email and submit request')"
-        @click="verify"
-      />
-    </div>
-
-    <div
-      v-else-if="verificationError"
-      role="alert"
-      class="rounded-lg border border-outline-gray-2 p-6"
-    >
-      <h1 class="text-xl font-semibold text-ink-gray-9">
-        {{
-          verificationErrorCode === 'invalid_or_expired'
-            ? __('Verification link expired or invalid')
-            : verificationErrorCode === 'processing'
-              ? __('Verification is already in progress')
-              : __('Verification temporarily unavailable')
-        }}
-      </h1>
-      <p class="mt-2 text-ink-gray-6">{{ verificationError }}</p>
-      <Button
-        v-if="verificationToken && verificationErrorCode !== 'invalid_or_expired'"
-        class="mt-4"
-        size="md"
-        variant="outline"
-        :loading="verifying"
-        :label="__('Try this link again')"
-        @click="verify"
-      />
-      <a
-        v-else-if="verificationErrorCode === 'invalid_or_expired'"
-        class="mt-4 inline-flex text-sm font-medium text-ink-blue-5 hover:underline"
-        href="/help/guest/new"
-      >
-        {{ __('Start a new request') }}
-      </a>
+      <form class="mt-4 flex flex-col gap-3" @submit.prevent="verify">
+        <FormControl
+          v-model="otp"
+          type="text"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          maxlength="6"
+          :label="__('Email verification code')"
+          :placeholder="__('000000')"
+        />
+        <p v-if="verificationError" role="alert" class="text-sm text-ink-red-6">{{ verificationError }}</p>
+        <Button type="submit" size="md" variant="solid" :loading="verifying"
+          :disabled="otp.length !== 6" :label="__('Verify and submit request')" />
+      </form>
+      <div class="mt-4 flex items-center justify-between gap-3">
+        <span class="text-sm text-ink-gray-6">{{ __('Did not receive the code?') }}</span>
+        <Button size="sm" variant="outline" :loading="resending" :disabled="resendWait > 0 || resends >= 3"
+          :label="resendWait > 0 ? __('Resend in {0}s', [resendWait]) : __('Resend code')"
+          @click="resendOtp" />
+      </div>
     </div>
 
     <form v-else class="flex flex-col gap-4" @submit.prevent="submit">
@@ -74,7 +48,7 @@
           {{ __('Submit a request') }}
         </h1>
         <p class="mt-1 text-sm text-ink-gray-6">
-          {{ __('No account is required. We will verify your email before creating the ticket.') }}
+          {{ __('No account is required. We will email you a one-time code before creating the ticket.') }}
         </p>
       </div>
 
@@ -181,7 +155,7 @@
         variant="solid"
         :loading="submitting"
         :disabled="!canSubmit || sent"
-        :label="__('Send verification email')"
+        :label="__('Email me a verification code')"
       />
       <p v-if="sent" role="status" class="text-sm text-ink-gray-6">
         {{ __('If the request is valid, a verification email has been sent. Check your inbox and follow the link within 30 minutes.') }}
@@ -192,12 +166,9 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { Button, Combobox, FormControl, call } from 'frappe-ui'
 import { __ } from '@helpdesk/shared/translation'
 
-const route = useRoute()
-const router = useRouter()
 
 const form = reactive({
   full_name: '',
@@ -215,8 +186,13 @@ const optionsError = ref('')
 const submitting = ref(false)
 const verifying = ref(false)
 const sent = ref(false)
+const challengeId = ref('')
+const otp = ref('')
+const maskedEmail = ref('')
+const resending = ref(false)
+const resends = ref(0)
+const resendWait = ref(0)
 const verified = ref(false)
-const verificationToken = ref('')
 const verificationError = ref('')
 const verificationErrorCode = ref('')
 const ticketName = ref('')
@@ -264,13 +240,6 @@ watch(
 )
 
 onMounted(async () => {
-  const token = typeof route.query.verify === 'string' ? route.query.verify : ''
-  if (token) {
-    // Do not consume the token on page load; mail security scanners may prefetch links.
-    verificationToken.value = token
-    return
-  }
-
   try {
     const result = await call('helpdesk.anonymous_tickets.get_guest_form_options')
     offices.value = result.offices || []
@@ -292,38 +261,71 @@ onMounted(async () => {
 })
 
 async function verify() {
-  if (!verificationToken.value || verifying.value) return
-
+  if (!challengeId.value || otp.value.length !== 6 || verifying.value) return
   verifying.value = true
   verificationError.value = ''
-  verificationErrorCode.value = ''
   try {
-    const result = await call(
-      'helpdesk.anonymous_tickets.verify_guest_submission',
-      { token: verificationToken.value }
-    )
+    const result = await call('helpdesk.anonymous_tickets.verify_guest_submission', {
+      challenge_id: challengeId.value,
+      otp: otp.value,
+    })
     if (!result?.success) {
-      verificationErrorCode.value = result?.code || 'temporarily_unavailable'
+      const code = result?.code
       verificationError.value =
-        verificationErrorCode.value === 'invalid_or_expired'
-          ? __('This link has expired or is no longer valid. Start a new request to receive another verification email.')
-          : verificationErrorCode.value === 'processing'
-            ? __('This request is already being processed. Wait briefly, then try this same link again.')
-            : __('The verification service is temporarily unavailable. Your request has not been confirmed. Please try this same link again shortly.')
+        code === 'invalid_code'
+          ? __('That code is incorrect. {0} attempts remaining.', [result.attempts_remaining])
+          : code === 'too_many_attempts'
+            ? __('Too many incorrect attempts. Request a new code if this challenge is still available.')
+            : code === 'cooldown'
+              ? __('Please wait before requesting another code.')
+              : code === 'processing'
+                ? __('Your request is being processed. Please try again shortly.')
+                : __('The code has expired or is no longer valid. Please start a new request.')
+      if (code === 'too_many_attempts' || code === 'invalid_or_expired') {
+        challengeId.value = ''
+      }
       return
     }
-
     ticketName.value = result.ticket
     verified.value = true
-    void router.replace({ query: { ...route.query, verify: undefined } })
-    verificationToken.value = ''
+    challengeId.value = ''
+    otp.value = ''
   } catch {
-    verificationErrorCode.value = 'temporarily_unavailable'
-    verificationError.value = __(
-      'We could not confirm the result. Try this same link again; if the ticket was already created, the same ticket reference will be returned. Do not submit a duplicate request.'
-    )
+    verificationError.value = __('Verification is temporarily unavailable. Try again shortly. Do not submit a duplicate request.')
   } finally {
     verifying.value = false
+  }
+}
+
+async function resendOtp() {
+  if (!challengeId.value || resending.value || resendWait.value > 0) return
+  resending.value = true
+  verificationError.value = ''
+  try {
+    const result = await call('helpdesk.anonymous_tickets.resend_guest_submission_otp', {
+      challenge_id: challengeId.value,
+    })
+    if (!result?.success) {
+      verificationError.value =
+        result?.code === 'cooldown'
+          ? __('Please wait before requesting another code.')
+          : result?.code === 'resend_limit'
+            ? __('You have reached the resend limit. Start a new request.')
+            : __('Could not resend the code. Please try again.')
+      if (result?.code === 'invalid_or_expired' || result?.code === 'resend_limit') challengeId.value = ''
+      return
+    }
+    otp.value = ''
+    resends.value += 1
+    resendWait.value = 60
+    const timer = window.setInterval(() => {
+      resendWait.value = Math.max(0, resendWait.value - 1)
+      if (!resendWait.value) window.clearInterval(timer)
+    }, 1000)
+  } catch {
+    verificationError.value = __('Could not resend the code. Please try again later.')
+  } finally {
+    resending.value = false
   }
 }
 
@@ -334,7 +336,9 @@ async function submit() {
   error.value = ''
   sent.value = false
   try {
-    await call('helpdesk.anonymous_tickets.start_guest_submission', { ...form })
+    const result = await call('helpdesk.anonymous_tickets.start_guest_submission', { ...form })
+    challengeId.value = result.challenge_id
+    maskedEmail.value = form.email.replace(/^(.).+(@.+)$/, '$1•••$2')
     sent.value = true
   } catch (e: any) {
     error.value =
