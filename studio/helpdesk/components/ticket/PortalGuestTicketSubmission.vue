@@ -41,18 +41,31 @@
       class="rounded-lg border border-outline-gray-2 p-6"
     >
       <h1 class="text-xl font-semibold text-ink-gray-9">
-        {{ __('Verification unavailable') }}
+        {{
+          verificationErrorCode === 'invalid_or_expired'
+            ? __('Verification link expired')
+            : verificationErrorCode === 'processing'
+              ? __('Verification is already in progress')
+              : __('Verification temporarily unavailable')
+        }}
       </h1>
       <p class="mt-2 text-ink-gray-6">{{ verificationError }}</p>
       <Button
-        v-if="verificationToken"
+        v-if="verificationToken && verificationErrorCode !== 'invalid_or_expired'"
         class="mt-4"
         size="md"
         variant="outline"
         :loading="verifying"
-        :label="__('Try again')"
+        :label="__('Try this link again')"
         @click="verify"
       />
+      <a
+        v-else-if="verificationErrorCode === 'invalid_or_expired'"
+        class="mt-4 inline-flex text-sm font-medium text-ink-blue-5 hover:underline"
+        href="/help/guest/new"
+      >
+        {{ __('Start a new request') }}
+      </a>
     </div>
 
     <form v-else class="flex flex-col gap-4" @submit.prevent="submit">
@@ -205,6 +218,7 @@ const sent = ref(false)
 const verified = ref(false)
 const verificationToken = ref('')
 const verificationError = ref('')
+const verificationErrorCode = ref('')
 const ticketName = ref('')
 const error = ref('')
 
@@ -282,18 +296,31 @@ async function verify() {
 
   verifying.value = true
   verificationError.value = ''
+  verificationErrorCode.value = ''
   try {
     const result = await call(
       'helpdesk.anonymous_tickets.verify_guest_submission',
       { token: verificationToken.value }
     )
+    if (!result?.success) {
+      verificationErrorCode.value = result?.code || 'temporarily_unavailable'
+      verificationError.value =
+        verificationErrorCode.value === 'invalid_or_expired'
+          ? __('This link has expired or is no longer valid. Start a new request to receive another verification email.')
+          : verificationErrorCode.value === 'processing'
+            ? __('This request is already being processed. Wait briefly, then try this same link again.')
+            : __('The verification service is temporarily unavailable. Your request has not been confirmed. Please try this same link again shortly.')
+      return
+    }
+
     ticketName.value = result.ticket
-    verified.value = Boolean(result.success)
+    verified.value = true
     void router.replace({ query: { ...route.query, verify: undefined } })
     verificationToken.value = ''
   } catch {
+    verificationErrorCode.value = 'temporarily_unavailable'
     verificationError.value = __(
-      'This link may have expired or already been used. Open it again from your email to check whether the request was submitted. If it still fails, contact the helpdesk before creating another request.'
+      'We could not confirm the result. Try this same link again; if the ticket was already created, the same ticket reference will be returned. Do not submit a duplicate request.'
     )
   } finally {
     verifying.value = false
