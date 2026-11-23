@@ -27,7 +27,7 @@ The revised intended flow is:
 3. The shared CBSUA `/login` page shows **Submit a ticket without logging in** as clickable text immediately below **Continue** and **Login with Email Link**.
 4. The login page uses the generic CBSUA Helpdesk welcome heading and CBSUA logo/favicon, and is intended for both system users and customers/requesters.
 5. The secondary link opens the fixed local route `/help/guest/new` directly.
-6. The guest form submits the request and sends an email verification link. A ticket is not created merely by opening the email link; the visitor confirms on the page.
+6. The guest form submits the request and sends a six-digit email OTP. The visitor enters it inline on `/help/guest/new`; no email link or redirect is involved.
 7. After successful verification, the visitor sees the native ticket reference and is told that requester-facing updates/replies are sent by email.
 
 When the KB is public, Guests may browse it, but must not see authenticated-only **Raise a ticket** or **View my tickets** actions. Do not add a second prominent anonymous button to the KB homepage. Authenticated users keep their existing portal actions and routes.
@@ -73,7 +73,9 @@ Guest-whitelisted, POST-only methods:
 | Method | Role |
 |---|---|
 | `get_guest_form_options` | Returns enabled offices and enabled request types for the guest form; no ticket data |
-| `start_guest_submission` | Validates allowlisted request data, stores a pending payload, and emails a verification link |
+| `start_guest_submission` | Validates allowlisted request data, stores a pending OTP challenge, and emails a six-digit code |
+| `verify_guest_submission(challenge_id, otp)` | Verifies the OTP and creates one native ticket |
+| `resend_guest_submission_otp(challenge_id)` | Rotates and resends the OTP under cooldown/resend limits |
 | `verify_guest_submission` | Validates/consumes the email token and creates one native ticket |
 
 Key properties in the current source:
@@ -84,7 +86,7 @@ Key properties in the current source:
 - Description limit is 10,000 characters; name and subject limits are 140 characters; email is limited to 254 characters.
 - Pending submission TTL is 30 minutes.
 - Token is generated using `secrets.token_urlsafe(32)`; only its SHA-256 digest is used in the cache key.
-- Opening the verification link does not itself create the ticket. The guest page requires an explicit confirmation action, reducing accidental submission by mail-security link scanners.
+- The guest remains on the submission page and explicitly enters the emailed OTP. The code is HMAC-digested in cache, expires after 10 minutes, allows five failed attempts, and can be resent up to three times with a 60-second cooldown.
 - IP-based rate limits currently apply to start (5 requests / 60 seconds) and verify (10 requests / 60 seconds), using `user_based=False`.
 - Verification uses a site-scoped Redis lock held until the surrounding DB transaction commits or rolls back. A deterministic UUID ticket key and a unique `HD Ticket.key` field provide idempotency backstops.
 - The pending cache entry is deleted after commit, not before. A rollback leaves the pending request available for a retry.
@@ -265,7 +267,7 @@ Clearly distinguish implementation from tested behavior. Update the deployment n
 5. Guest cannot list, read, search, update, or infer any ticket, including a ticket whose `raised_by` matches the Guest's submitted email or a registered user's login name.
 6. Do not auto-associate a Guest submission to an existing Contact or HD Customer based on email equality.
 7. Only a server-verified submission may set the transient anonymous ticket flags. Do not expose a client-controlled flag.
-8. Keep verification token single-use, expiring, protected in cache, and idempotent under replay/concurrency.
+8. Keep OTP challenge single-use, expiring, HMAC-protected in cache, attempt-limited, resend-limited, and idempotent under replay/concurrency.
 9. Keep the verification lock held until commit/rollback. Do not release it at function return.
 10. Pending payload must remain available if ticket insertion rolls back; delete it only after commit.
 11. No guest attachment uploads until a separate upload authorization, ownership, expiry, and cleanup design exists.
@@ -335,7 +337,7 @@ Test in a real browser with both public-KB settings and both Guest/authenticated
 - Run Frappe Semgrep on changed Python files and resolve findings.
 - Run formatting/lint/type checks used by this repository.
 - Migrate a representative copy of a real site; confirm no duplicate `HD Ticket.key` values and that the unique index is created.
-- Verify outbound verification, acknowledgement, agent-reply and status-change email with a real configured account and inspect rendered content/headers.
+- Verify outbound OTP, acknowledgement, agent-reply and status-change email with a real configured account and inspect rendered content/headers.
 - Test email workflow disabled settings and failure logging.
 - Check that logs do not contain raw verification tokens or sensitive requester content.
 
@@ -453,7 +455,7 @@ The receiving agent should replace/update this section at the next handoff:
 - **Source changes committed:**
   - Added branded HTML and plain-text templates: `helpdesk/templates/emails/guest_ticket_verification.html` and `.txt`.
   - Added a minimal Jinja context and used Frappe's supported `frappe.sendmail(template="guest_ticket_verification", args=context)` API to load both HTML and plain-text alternatives; the later HTTP 500 incident section records and corrects the initial unsupported `text_content` argument. The message includes a request summary limited to subject/office/type, escaped template values, and a canonical URL builder using `get_url(..., allow_header_override=False)` plus URL encoding.
-  - Verification now returns structured `invalid_or_expired`, `processing`, and `temporarily_unavailable` codes for expected failure modes. Cache/lock failures are logged with traceback context; bearer tokens are not included in those log messages.
+  - OTP verification returns structured invalid-code, attempt-limit, expired-challenge, processing and temporary-service outcomes. Cache/lock failures are logged without logging the OTP or challenge secret.
   - Portal confirmation UI now separates expired/invalid from temporary service errors, supports retry for temporary/in-progress outcomes, and avoids telling a requester to create a duplicate request when the result is uncertain.
   - Added focused tests for malformed and expired tokens, canonical URL generation/encoding, and lock/cache service failure classification.
 - **Implementation commits:**
@@ -487,7 +489,7 @@ The receiving agent should replace/update this section at the next handoff:
 - **Framework source inspected:** `AgeReapor/cbsua-app-frappe`, `feat/anonymous-helpdesk-login-cta`, `frappe/email/__init__.py`. Its sendmail signature documents and implements `template` and `args`; it does not accept `text_content`.
 - **Important correction to the earlier handoff note:** the previous claim that Helpdesk could pass `text_content` directly to `frappe.sendmail` was incorrect. The supported Frappe template interface is now used.
 - **Validation state:** source-level root cause and correction only. No live Pilot request, bench test, email queue, or rendered-message validation has been run. Deploy/restart the Helpdesk app containing this commit, retry one guest submission, and inspect the Frappe Error Log if a 500 remains. If it persists, capture the server traceback and failing request method; do not assume it is still the same issue.
-- **Next checks:** run the focused anonymous-ticket test module; confirm `start_guest_submission` queues the named email template; confirm both HTML and text alternatives appear in the queued message; confirm the generated verification link uses the public gateway origin; then complete the verify/replay/expiry checks.
+- **Next checks:** run the focused anonymous-ticket test module; confirm `start_guest_submission` queues the OTP template with HTML and text alternatives; verify correct/incorrect/expired codes, resend invalidation/cooldown/limit, five-attempt lockout, replay/idempotency, concurrent confirmation, rollback and cache outage. No public gateway URL is required for verification.
 
 ## Email-link to inline OTP migration — 2026-11-23
 
