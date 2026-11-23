@@ -157,9 +157,6 @@
         :disabled="!canSubmit || sent"
         :label="__('Email me a verification code')"
       />
-      <p v-if="sent" role="status" class="text-sm text-ink-gray-6">
-        {{ __('If the request is valid, a verification email has been sent. Check your inbox and follow the link within 30 minutes.') }}
-      </p>
     </form>
   </section>
 </template>
@@ -194,7 +191,6 @@ const resends = ref(0)
 const resendWait = ref(0)
 const verified = ref(false)
 const verificationError = ref('')
-const verificationErrorCode = ref('')
 const ticketName = ref('')
 const error = ref('')
 
@@ -337,6 +333,10 @@ async function submit() {
   sent.value = false
   try {
     const result = await call('helpdesk.anonymous_tickets.start_guest_submission', { ...form })
+    if (!result?.success || !result.challenge_id) {
+      error.value = __('The verification service is temporarily unavailable. Please try again shortly.')
+      return
+    }
     challengeId.value = result.challenge_id
     maskedEmail.value = form.email.replace(/^(.).+(@.+)$/, '$1•••$2')
     sent.value = true
