@@ -69,8 +69,15 @@ def _render_guest_verification_email(payload: dict, token: str) -> tuple[str, st
 
 def _release_verification_lock(lock) -> None:
     """Release a verification lock after the database transaction settles."""
-    if lock.owned():
-        lock.release()
+    try:
+        if lock.owned():
+            lock.release()
+    except Exception:
+        # The lock has a finite lease; a Redis outage must not mask the request result.
+        frappe.log_error(
+            message=frappe.get_traceback(),
+            title="Guest ticket verification lock release failed",
+        )
 
 
 def _validate_submission(
