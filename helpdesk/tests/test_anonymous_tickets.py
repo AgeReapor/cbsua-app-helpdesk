@@ -219,6 +219,16 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         self.assertEqual(permission_query("Guest"), "1=0")
         self.assertIn("owner != 'Guest'", permission_query(email))
 
+    def test_anonymous_ticket_skips_first_ticket_tag_write_permission_check(self):
+        ticket = frappe.new_doc("HD Ticket")
+        ticket.flags.anonymous_submission = True
+        ticket.raised_by = "visitor@example.com"
+
+        with patch("helpdesk.api.tags.apply_tag") as apply_tag:
+            ticket.tag_first_ticket()
+
+        apply_tag.assert_not_called()
+
     def test_anonymous_insert_rules_preserve_verified_email_and_guest_owner(self):
         ticket = frappe.new_doc("HD Ticket")
         ticket.flags.anonymous_submission = True
