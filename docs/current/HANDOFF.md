@@ -441,3 +441,29 @@ The receiving agent should replace/update this section at the next handoff:
 - **Validation not run:** no local checkout/bench/browser/build runner is available through the GitHub repository connection. Verify the login template renders correctly with password, email-link, LDAP and social login configurations; verify all static asset URLs; run Python lint/tests and frontend build; test direct `/login`, private/public KB and guest-route matrix.
 
 **Next concrete action:** check out both feature branches in a compatible Frappe v17 bench, run targeted tests and builds, then verify the full browser matrix. Do not promote the deployment source lock until that validation passes.
+
+
+---
+
+## Guest verification email and failure-state fix — 2026-11-23
+
+- **Repository / branch:** `AgeReapor/cbsua-app-helpdesk`, `feat/anonymous-tickets`.
+- **Base observed before edits:** `2e08d4a5599c749cb7bfb12e39155957c7e81252`.
+- **Problem traced:** the backend previously collapsed invalid/expired tokens and infrastructure exceptions into Frappe errors, while the Vue component mapped every failed verification call to one expired/already-used message. The email body was assembled inline and the URL was built by concatenating `get_url()` with a route, leaving Host-header-derived URL behavior and query encoding implicit.
+- **Source changes committed:**
+  - Added branded HTML and plain-text templates: `helpdesk/templates/emails/guest_ticket_verification.html` and `.txt`.
+  - Added Jinja rendering, a request summary limited to subject/office/type, escaped template values, and a canonical URL builder using `get_url(..., allow_header_override=False)` plus URL encoding.
+  - Verification now returns structured `invalid_or_expired`, `processing`, and `temporarily_unavailable` codes for expected failure modes. Cache/lock failures are logged with traceback context; bearer tokens are not included in those log messages.
+  - Portal confirmation UI now separates expired/invalid from temporary service errors, supports retry for temporary/in-progress outcomes, and avoids telling a requester to create a duplicate request when the result is uncertain.
+  - Added focused tests for malformed tokens, canonical URL generation/encoding, and lock-service failure classification.
+- **Implementation commits:**
+  - Portal error-state UI: `17dba88734d8809a4f06f143ab5054662b4116d7`
+  - Backend URL/rendering/error classification: `29f61d75db79bbe19a04dacc09299209fc388564`
+  - Branded HTML template: `98f05dc7e5a74c1414060305a6e086920e157091`
+  - Plain-text template: `20db53df72f69f3a83cf89f9d715205d15245b6d`
+  - Template escaping: `16aefa7f928cbdfadca874b65fab9bb8a78fe710`
+  - Verification tests: `20387817219b429ce2d82f63c17cc85094f79a5a`, `efe55fa4388662d5877b8d1cb4844ab550160c4d`
+- **Validation performed:** source inspection only. No local checkout, Pilot bench, Redis, browser, or real outbound mail account is available through the GitHub connector; targeted Frappe tests, template rendering, Studio build, and gateway round-trip have not been run.
+- **Important runtime check:** the site config `host_name` / `hostname` must point to the public gateway hostname with the correct scheme and port. Because the new URL builder intentionally ignores request Host headers, an incorrect/missing canonical host setting will produce a non-public or unreachable link. Verify the generated link is exactly the externally reachable gateway origin.
+- **Next actions:** run `bench --site <site> run-tests --app helpdesk --module helpdesk.tests.test_anonymous_tickets` (or the repository's Pilot equivalent); build Studio; send a real test email through the pilot gateway; confirm link opens the confirmation screen without consuming the token; confirm once; reopen the link and confirm it returns the same ticket reference; test expiry and temporary Redis outage; inspect rendered email in desktop/mobile clients.
+- **Deployment:** no framework branch, deployment source lock, image ref, or pilot gateway configuration was changed. Do not promote until the runtime checks above pass.
