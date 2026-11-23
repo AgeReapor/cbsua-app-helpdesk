@@ -64,6 +64,23 @@ def _guest_otp_email_context(payload: dict, otp: str) -> dict:
     }
 
 
+def _send_guest_otp_email(payload: dict, otp: str, *, resend: bool = False):
+    """Queue an OTP email for post-commit delivery, matching Frappe Login Link."""
+    subject = (
+        _("Your new CBSUA Helpdesk verification code")
+        if resend
+        else _("Your CBSUA Helpdesk verification code")
+    )
+    return frappe.sendmail(
+        recipients=[payload["email"]],
+        subject=subject,
+        template="guest_ticket_verification",
+        args=_guest_otp_email_context(payload, otp),
+        now=True,
+        redact_message_after_send=True,
+    )
+
+
 def _release_verification_lock(lock) -> None:
     """Release a verification lock after the database transaction settles."""
     try:
@@ -192,12 +209,7 @@ def start_guest_submission(
         frappe.log_error(message=frappe.get_traceback(), title="Guest ticket OTP cache unavailable")
         return {"success": False, "code": "temporarily_unavailable"}
     try:
-        frappe.sendmail(
-            recipients=[payload["email"]],
-            subject=_("Your CBSUA Helpdesk verification code"),
-            template="guest_ticket_verification",
-            args=_guest_otp_email_context(payload, otp),
-        )
+        _send_guest_otp_email(payload, otp)
     except Exception:
         frappe.cache.delete_value(cache_key)
         raise
@@ -205,7 +217,7 @@ def start_guest_submission(
         "success": True,
         "challenge_id": challenge_id,
         "expires_in_seconds": OTP_TTL_SECONDS,
-        "message": _("A verification code has been sent to your email address."),
+        "message": _("A verification email has been queued for delivery."),
     }
 
 
@@ -343,16 +355,11 @@ def resend_guest_submission_otp(challenge_id: str) -> dict:
         frappe.log_error(message=frappe.get_traceback(), title="Guest ticket OTP resend cache update failed")
         return {"success": False, "code": "temporarily_unavailable"}
     try:
-        frappe.sendmail(
-            recipients=[challenge["payload"]["email"]],
-            subject=_("Your new CBSUA Helpdesk verification code"),
-            template="guest_ticket_verification",
-            args=_guest_otp_email_context(challenge["payload"], otp),
-        )
+        _send_guest_otp_email(challenge["payload"], otp, resend=True)
     except Exception:
         frappe.cache.set_value(cache_key, challenge, expires_in_sec=ttl)
         raise
-    return {"success": True, "message": _("A new verification code has been sent.")}
+    return {"success": True, "message": _("A new verification email has been queued for delivery.")}
 
 
 
