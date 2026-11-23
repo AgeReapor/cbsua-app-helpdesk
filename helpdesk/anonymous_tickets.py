@@ -15,7 +15,6 @@ import frappe
 from frappe import _
 from frappe.rate_limiter import rate_limit
 from frappe.utils import get_url, validate_email_address
-from frappe.utils.jinja import get_email_from_template
 
 from helpdesk.utils import CUSTOMER_PORTAL_ROOT
 
@@ -45,29 +44,23 @@ def _build_verification_url(token: str) -> str:
     )
 
 
-def _render_guest_verification_email(
-    payload: dict, token: str
-) -> tuple[str, str | None]:
+def _guest_verification_email_context(payload: dict, token: str) -> dict:
     office_name = frappe.db.get_value("CB Office", payload["office"], "office_name")
     request_type_name = frappe.db.get_value(
         "CB Office Request Type", payload["request_type"], "request_type_name"
     )
-    return get_email_from_template(
-        "guest_ticket_verification",
-        {
-            "full_name": payload["full_name"],
-            "subject": payload["subject"],
-            "office": office_name or payload["office"],
-            "request_type": request_type_name or payload["request_type"],
-            "verify_url": _build_verification_url(token),
-            "logo_url": get_url(
-                "/assets/helpdesk/desk/cbsua/cbsua-logo-2400.png",
-                allow_header_override=False,
-            ),
-            "expires_in_minutes": PENDING_TTL_SECONDS // 60,
-        },
-    )
-
+    return {
+        "full_name": payload["full_name"],
+        "subject": payload["subject"],
+        "office": office_name or payload["office"],
+        "request_type": request_type_name or payload["request_type"],
+        "verify_url": _build_verification_url(token),
+        "logo_url": get_url(
+            "/assets/helpdesk/desk/cbsua/cbsua-logo-2400.png",
+            allow_header_override=False,
+        ),
+        "expires_in_minutes": PENDING_TTL_SECONDS // 60,
+    }
 
 def _release_verification_lock(lock) -> None:
     """Release a verification lock after the database transaction settles."""
@@ -187,13 +180,13 @@ def start_guest_submission(
         _cache_key(digest), payload, expires_in_sec=PENDING_TTL_SECONDS
     )
 
-    message, text_content = _render_guest_verification_email(payload, token)
+    email_context = _guest_verification_email_context(payload, token)
     try:
         frappe.sendmail(
             recipients=[payload["email"]],
             subject=_("Verify your email | CBSUA Helpdesk"),
-            message=message,
-            text_content=text_content,
+            template="guest_ticket_verification",
+            args=email_context,
         )
     except Exception:
         frappe.cache.delete_value(_cache_key(digest))
