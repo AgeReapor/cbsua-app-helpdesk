@@ -1,6 +1,6 @@
 # CBSUA Helpdesk Documentation
 
-This directory contains the maintained architecture, feature, configuration, development, testing, and UI documentation for the CBSUA Helpdesk application.
+This directory contains the maintained product architecture, feature specifications, configuration guides, development notes, testing procedures, and UI documentation for the CBSUA Helpdesk application. Temporary agent handoff notes are not maintained here; the durable feature and architecture documents are the source of truth.
 
 ## Architecture
 
