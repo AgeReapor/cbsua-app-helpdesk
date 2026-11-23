@@ -39,7 +39,7 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
         otp = _new_otp()
         self.assertEqual(len(otp), OTP_LENGTH)
         self.assertTrue(otp.isdigit())
-        with patch("helpdesk.anonymous_tickets.frappe.conf.get", return_value="site-secret"):
+        with patch("helpdesk.anonymous_tickets.get_encryption_key", return_value="site-secret"):
             digest = _otp_digest("challenge-a", otp)
             self.assertEqual(digest, _otp_digest("challenge-a", otp))
             self.assertNotEqual(digest, _otp_digest("challenge-b", otp))
@@ -106,7 +106,7 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
             patch("helpdesk.anonymous_tickets._acquire_challenge_lock", return_value=Mock()),
             patch("helpdesk.anonymous_tickets.frappe.cache.get_value", return_value=challenge),
             patch("helpdesk.anonymous_tickets.frappe.cache.set_value") as set_value,
-            patch("helpdesk.anonymous_tickets.frappe.conf.get", return_value="site-secret"),
+            patch("helpdesk.anonymous_tickets.get_encryption_key", return_value="site-secret"),
         ):
             result = verify_guest_submission(challenge_id, "123456")
         self.assertEqual(result["code"], "invalid_code")
