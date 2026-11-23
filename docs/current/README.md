@@ -95,7 +95,7 @@ The guest route is registered in `shared/src/portalRoutes.ts` and the Studio pag
 
 ### Verification email and confirmation behavior (source update 2026-11-23)
 
-The verification email now uses a dedicated Frappe/Jinja template at `helpdesk/templates/emails/guest_ticket_verification.html` with a companion plain-text template. It carries CBSUA Helpdesk branding, the request subject/office/type summary, an explicit confirmation action, and the 30-minute expiry explanation. The request description is deliberately omitted from email. Dynamic HTML values are escaped.
+The verification email now uses a dedicated Frappe/Jinja template at `helpdesk/templates/emails/guest_ticket_verification.html` with a companion plain-text alternative passed to Frappe's email queue. It carries CBSUA Helpdesk branding, the request subject/office/type summary, an explicit confirmation action, and the 30-minute expiry explanation. The request description is deliberately omitted from email. Dynamic HTML values are escaped.
 
 The verification URL is built from Frappe's configured site URL with request-host overrides disabled, and its token query parameter is URL-encoded. This avoids accepting an arbitrary incoming Host header as the destination host. The configured site hostname must still be the public gateway hostname (including the correct scheme/port where required); this cannot be confirmed from source alone.
 
