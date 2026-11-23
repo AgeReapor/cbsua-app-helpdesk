@@ -9,11 +9,13 @@ import hashlib
 import html
 import secrets
 import uuid
+from urllib.parse import urlencode
 
 import frappe
 from frappe import _
 from frappe.rate_limiter import rate_limit
 from frappe.utils import get_url, validate_email_address
+from frappe.utils.jinja import render_template
 
 from helpdesk.utils import CUSTOMER_PORTAL_ROOT
 
@@ -33,6 +35,37 @@ def _cache_key(digest: str) -> str:
 def _ticket_key(digest: str) -> str:
     # The native HD Ticket key doubles as a durable idempotency marker.
     return str(uuid.uuid5(uuid.NAMESPACE_URL, f"cbsua-guest-ticket:{digest}"))
+
+
+def _build_verification_url(token: str) -> str:
+    query = urlencode({"verify": token})
+    return get_url(
+        f"{CUSTOMER_PORTAL_ROOT}/guest/new?{query}",
+        allow_header_override=False,
+    )
+
+
+def _render_guest_verification_email(payload: dict, token: str) -> str:
+    office_name = frappe.db.get_value("CB Office", payload["office"], "office_name")
+    request_type_name = frappe.db.get_value(
+        "CB Office Request Type", payload["request_type"], "request_type_name"
+    )
+    return render_template(
+        "templates/emails/guest_ticket_verification.html",
+        {
+            "full_name": payload["full_name"],
+            "subject": payload["subject"],
+            "office": office_name or payload["office"],
+            "request_type": request_type_name or payload["request_type"],
+            "verify_url": _build_verification_url(token),
+            "logo_url": get_url(
+                "/assets/helpdesk/desk/cbsua/cbsua-logo-2400.png",
+                allow_header_override=False,
+            ),
+            "expires_in_minutes": PENDING_TTL_SECONDS // 60,
+        },
+        is_path=True,
+    )
 
 
 def _release_verification_lock(lock) -> None:
@@ -146,31 +179,16 @@ def start_guest_submission(
         _cache_key(digest), payload, expires_in_sec=PENDING_TTL_SECONDS
     )
 
-    verify_url = f"{get_url()}{CUSTOMER_PORTAL_ROOT}/guest/new?verify={token}"
-    verification_intro = _(
-        "Someone submitted a helpdesk request using this email address. "
-        "Confirm the address to create the ticket."
-    )
-    expiration_note = _(
-        "This link expires in 30 minutes. If you did not make this request, "
-        "you can ignore this email."
-    )
-    greeting = (
-        _("Hello {0},").format(html.escape(payload["full_name"]))
-        if payload["full_name"]
-        else _("Hello,")
-    )
-    frappe.sendmail(
-        recipients=[payload["email"]],
-        subject=_("Verify your CBSUA Helpdesk request"),
-        message=(
-            f"<p>{greeting}</p>"
-            f"<p>{verification_intro}</p>"
-            f'<p><a href="{html.escape(verify_url, quote=True)}">'
-            f"{_('Verify email and submit request')}</a></p>"
-            f"<p>{expiration_note}</p>"
-        ),
-    )
+    message = _render_guest_verification_email(payload, token)
+    try:
+        frappe.sendmail(
+            recipients=[payload["email"]],
+            subject=_("Verify your email | CBSUA Helpdesk"),
+            message=message,
+        )
+    except Exception:
+        frappe.cache.delete_value(_cache_key(digest))
+        raise
     return {
         "message": _("If the request is valid, a verification email has been sent.")
     }
@@ -181,7 +199,7 @@ def start_guest_submission(
 def verify_guest_submission(token: str) -> dict:
     """Verify the email bearer token and create exactly one native HD Ticket."""
     if not isinstance(token, str) or len(token) < 32 or len(token) > 128:
-        frappe.throw(_("This verification link is invalid or has expired."))
+        return {"success": False, "code": "invalid_or_expired"}
 
     digest = _token_digest(token)
     key = _ticket_key(digest)
@@ -191,11 +209,18 @@ def verify_guest_submission(token: str) -> dict:
 
     cache_key = _cache_key(digest)
     lock_name = f"{frappe.local.site}:{cache_key}:verify-lock"
-    lock = frappe.cache.lock(lock_name, timeout=300, blocking_timeout=15)
-    if not lock.acquire():
-        frappe.throw(
-            _("This verification request is already being processed. Please try again.")
+    try:
+        lock = frappe.cache.lock(lock_name, timeout=300, blocking_timeout=15)
+        acquired = lock.acquire()
+    except Exception:
+        frappe.log_error(
+            message=frappe.get_traceback(),
+            title="Guest ticket verification lock unavailable",
         )
+        return {"success": False, "code": "temporarily_unavailable"}
+
+    if not acquired:
+        return {"success": False, "code": "processing"}
 
     # Keep the distributed lock until the database transaction settles. Releasing
     # it when this function returns is too early: Frappe commits the request only
@@ -208,9 +233,17 @@ def verify_guest_submission(token: str) -> dict:
     if existing:
         return {"success": True, "ticket": existing}
 
-    payload = frappe.cache.get_value(cache_key)
+    try:
+        payload = frappe.cache.get_value(cache_key)
+    except Exception:
+        frappe.log_error(
+            message=frappe.get_traceback(),
+            title="Guest ticket verification cache unavailable",
+        )
+        return {"success": False, "code": "temporarily_unavailable"}
+
     if not isinstance(payload, dict):
-        frappe.throw(_("This verification link is invalid or has expired."))
+        return {"success": False, "code": "invalid_or_expired"}
 
     # Recheck routing at verification time; an office/type may have been disabled.
     payload = _validate_submission(
