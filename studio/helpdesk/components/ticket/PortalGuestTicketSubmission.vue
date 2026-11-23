@@ -293,6 +293,14 @@ async function verify() {
   }
 }
 
+function startResendCooldown(seconds = 60) {
+  resendWait.value = seconds
+  const timer = window.setInterval(() => {
+    resendWait.value = Math.max(0, resendWait.value - 1)
+    if (!resendWait.value) window.clearInterval(timer)
+  }, 1000)
+}
+
 async function resendOtp() {
   if (!challengeId.value || resending.value || resendWait.value > 0) return
   resending.value = true
@@ -308,16 +316,13 @@ async function resendOtp() {
           : result?.code === 'resend_limit'
             ? __('You have reached the resend limit. Start a new request.')
             : __('Could not resend the code. Please try again.')
+      if (result?.code === 'cooldown' && result?.retry_after) startResendCooldown(result.retry_after)
       if (result?.code === 'invalid_or_expired' || result?.code === 'resend_limit') challengeId.value = ''
       return
     }
     otp.value = ''
     resends.value += 1
-    resendWait.value = 60
-    const timer = window.setInterval(() => {
-      resendWait.value = Math.max(0, resendWait.value - 1)
-      if (!resendWait.value) window.clearInterval(timer)
-    }, 1000)
+    startResendCooldown()
   } catch {
     verificationError.value = __('Could not resend the code. Please try again later.')
   } finally {
@@ -338,6 +343,7 @@ async function submit() {
       return
     }
     challengeId.value = result.challenge_id
+    startResendCooldown()
     maskedEmail.value = form.email.replace(/^(.).+(@.+)$/, '$1•••$2')
     sent.value = true
   } catch (e: any) {
