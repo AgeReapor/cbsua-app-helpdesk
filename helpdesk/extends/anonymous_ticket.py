@@ -37,6 +37,13 @@ class AnonymousHDTicketMixin:
             return
         super().set_customer()
 
+    def tag_first_ticket(self) -> None:
+        if getattr(self.flags, "anonymous_submission", False):
+            # Frappe's native tag-link update checks ticket write permission.
+            # A verified Guest may insert this one ticket but must not gain write access.
+            return
+        super().tag_first_ticket()
+
     def generate_key(self) -> None:
         if getattr(self.flags, "anonymous_submission", False):
             self.key = self.flags.anonymous_ticket_key
