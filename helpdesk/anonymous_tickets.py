@@ -7,44 +7,50 @@ the cache key. Successful verification creates one native HD Ticket.
 
 import hashlib
 import html
+import hmac
 import secrets
+import time
 import uuid
-from urllib.parse import urlencode
 
 import frappe
 from frappe import _
 from frappe.rate_limiter import rate_limit
-from frappe.utils import get_url, validate_email_address
+from frappe.utils import validate_email_address
 
-from helpdesk.utils import CUSTOMER_PORTAL_ROOT
-
-PENDING_TTL_SECONDS = 30 * 60
+OTP_TTL_SECONDS = 10 * 60
+OTP_LENGTH = 6
+MAX_OTP_ATTEMPTS = 5
+RESEND_COOLDOWN_SECONDS = 60
+MAX_OTP_RESENDS = 3
 MAX_DESCRIPTION_LENGTH = 10_000
-CACHE_PREFIX = "helpdesk:guest-ticket:"
+CACHE_PREFIX = "helpdesk:guest-ticket:otp:"
 
 
-def _token_digest(token: str) -> str:
-    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+def _digest(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
-def _cache_key(digest: str) -> str:
-    return f"{CACHE_PREFIX}{digest}"
+def _cache_key(challenge_id: str) -> str:
+    return f"{CACHE_PREFIX}{_digest(challenge_id)}"
 
 
-def _ticket_key(digest: str) -> str:
-    # The native HD Ticket key doubles as a durable idempotency marker.
-    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"cbsua-guest-ticket:{digest}"))
+def _ticket_key(challenge_id: str) -> str:
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"cbsua-guest-ticket:{_digest(challenge_id)}"))
 
 
-def _build_verification_url(token: str) -> str:
-    query = urlencode({"verify": token})
-    return get_url(
-        f"{CUSTOMER_PORTAL_ROOT}/guest/new?{query}",
-        allow_header_override=False,
-    )
+def _otp_digest(challenge_id: str, otp: str) -> str:
+    secret = frappe.conf.get("encryption_key")
+    if not secret:
+        frappe.throw(_("Email verification is temporarily unavailable."))
+    message = f"{challenge_id}:{otp}".encode("utf-8")
+    return hmac.new(secret.encode("utf-8"), message, hashlib.sha256).hexdigest()
 
 
-def _guest_verification_email_context(payload: dict, token: str) -> dict:
+def _new_otp() -> str:
+    return f"{secrets.randbelow(10 ** OTP_LENGTH):0{OTP_LENGTH}d}"
+
+
+def _guest_otp_email_context(payload: dict, otp: str) -> dict:
     office_name = frappe.db.get_value("CB Office", payload["office"], "office_name")
     request_type_name = frappe.db.get_value(
         "CB Office Request Type", payload["request_type"], "request_type_name"
@@ -54,13 +60,10 @@ def _guest_verification_email_context(payload: dict, token: str) -> dict:
         "subject": payload["subject"],
         "office": office_name or payload["office"],
         "request_type": request_type_name or payload["request_type"],
-        "verify_url": _build_verification_url(token),
-        "logo_url": get_url(
-            "/assets/helpdesk/desk/cbsua/cbsua-logo-2400.png",
-            allow_header_override=False,
-        ),
-        "expires_in_minutes": PENDING_TTL_SECONDS // 60,
+        "otp": otp,
+        "expires_in_minutes": OTP_TTL_SECONDS // 60,
     }
+
 
 def _release_verification_lock(lock) -> None:
     """Release a verification lock after the database transaction settles."""
@@ -170,122 +173,168 @@ def start_guest_submission(
     request_type: str,
     full_name: str = "",
 ) -> dict:
-    """Email a one-time verification link; does not create a ticket."""
-    payload = _validate_submission(
-        email, full_name, subject, description, office, request_type
-    )
-    token = secrets.token_urlsafe(32)
-    digest = _token_digest(token)
-    frappe.cache.set_value(
-        _cache_key(digest), payload, expires_in_sec=PENDING_TTL_SECONDS
-    )
-
-    email_context = _guest_verification_email_context(payload, token)
+    """Create a pending challenge and email a six-digit OTP; no ticket yet."""
+    payload = _validate_submission(email, full_name, subject, description, office, request_type)
+    challenge_id = secrets.token_urlsafe(32)
+    otp = _new_otp()
+    now = time.time()
+    challenge = {
+        "payload": payload,
+        "otp_digest": _otp_digest(challenge_id, otp),
+        "attempts": 0,
+        "resends": 0,
+        "last_sent_at": now,
+        "created_at": now,
+    }
+    cache_key = _cache_key(challenge_id)
+    frappe.cache.set_value(cache_key, challenge, expires_in_sec=OTP_TTL_SECONDS)
     try:
         frappe.sendmail(
             recipients=[payload["email"]],
-            subject=_("Verify your email | CBSUA Helpdesk"),
+            subject=_("Your CBSUA Helpdesk verification code"),
             template="guest_ticket_verification",
-            args=email_context,
+            args=_guest_otp_email_context(payload, otp),
         )
     except Exception:
-        frappe.cache.delete_value(_cache_key(digest))
+        frappe.cache.delete_value(cache_key)
         raise
     return {
-        "message": _("If the request is valid, a verification email has been sent.")
+        "success": True,
+        "challenge_id": challenge_id,
+        "expires_in_seconds": OTP_TTL_SECONDS,
+        "message": _("A verification code has been sent to your email address."),
     }
+
+
+def _acquire_challenge_lock(challenge_id: str):
+    lock_name = f"{frappe.local.site}:{_cache_key(challenge_id)}:lock"
+    lock = frappe.cache.lock(lock_name, timeout=300, blocking_timeout=5)
+    if not lock.acquire():
+        return None
+    frappe.db.after_commit.add(lambda: _release_verification_lock(lock))
+    frappe.db.after_rollback.add(lambda: _release_verification_lock(lock))
+    return lock
 
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 @rate_limit(limit=10, seconds=60, user_based=False)
-def verify_guest_submission(token: str) -> dict:
-    """Verify the email bearer token and create exactly one native HD Ticket."""
-    if not isinstance(token, str) or len(token) < 32 or len(token) > 128:
+def verify_guest_submission(challenge_id: str, otp: str) -> dict:
+    """Verify an email OTP and create exactly one native HD Ticket."""
+    if (
+        not isinstance(challenge_id, str)
+        or len(challenge_id) < 32
+        or len(challenge_id) > 128
+        or not isinstance(otp, str)
+        or len(otp) != OTP_LENGTH
+        or not otp.isdigit()
+    ):
         return {"success": False, "code": "invalid_or_expired"}
 
-    digest = _token_digest(token)
-    key = _ticket_key(digest)
+    key = _ticket_key(challenge_id)
     existing = frappe.db.get_value("HD Ticket", {"key": key}, "name")
     if existing:
         return {"success": True, "ticket": existing}
 
-    cache_key = _cache_key(digest)
-    lock_name = f"{frappe.local.site}:{cache_key}:verify-lock"
     try:
-        lock = frappe.cache.lock(lock_name, timeout=300, blocking_timeout=15)
-        acquired = lock.acquire()
+        lock = _acquire_challenge_lock(challenge_id)
     except Exception:
-        frappe.log_error(
-            message=frappe.get_traceback(),
-            title="Guest ticket verification lock unavailable",
-        )
+        frappe.log_error(message=frappe.get_traceback(), title="Guest ticket OTP lock unavailable")
         return {"success": False, "code": "temporarily_unavailable"}
-
-    if not acquired:
+    if not lock:
         return {"success": False, "code": "processing"}
 
-    # Keep the distributed lock until the database transaction settles. Releasing
-    # it when this function returns is too early: Frappe commits the request only
-    # after the whitelisted method returns, allowing a concurrent request to see
-    # neither the first ticket nor its cache cleanup and create a duplicate.
-    frappe.db.after_commit.add(lambda: _release_verification_lock(lock))
-    frappe.db.after_rollback.add(lambda: _release_verification_lock(lock))
-
-    existing = frappe.db.get_value("HD Ticket", {"key": key}, "name")
-    if existing:
-        return {"success": True, "ticket": existing}
-
-    try:
-        payload = frappe.cache.get_value(cache_key)
-    except Exception:
-        frappe.log_error(
-            message=frappe.get_traceback(),
-            title="Guest ticket verification cache unavailable",
-        )
-        return {"success": False, "code": "temporarily_unavailable"}
-
-    if not isinstance(payload, dict):
+    cache_key = _cache_key(challenge_id)
+    challenge = frappe.cache.get_value(cache_key)
+    if not isinstance(challenge, dict):
         return {"success": False, "code": "invalid_or_expired"}
+    if challenge.get("attempts", 0) >= MAX_OTP_ATTEMPTS:
+        return {"success": False, "code": "too_many_attempts"}
 
-    # Recheck routing at verification time; an office/type may have been disabled.
-    payload = _validate_submission(
-        payload["email"],
-        payload.get("full_name", ""),
-        payload["subject"],
-        payload["description"],
-        payload["office"],
-        payload["request_type"],
-    )
-
-    description_html = html.escape(payload["description"]).replace("\n", "<br>")
-
-    ticket = frappe.get_doc(
-        {
-            "doctype": "HD Ticket",
-            "subject": payload["subject"],
-            "description": description_html,
-            "raised_by": payload["email"],
-            "via_customer_portal": 1,
-            "office": payload["office"],
-            "request_type": payload["request_type"],
+    expected = _otp_digest(challenge_id, otp)
+    if not hmac.compare_digest(challenge.get("otp_digest", ""), expected):
+        challenge["attempts"] = challenge.get("attempts", 0) + 1
+        remaining = max(0, MAX_OTP_ATTEMPTS - challenge["attempts"])
+        ttl = max(1, int(OTP_TTL_SECONDS - (time.time() - challenge["created_at"])))
+        frappe.cache.set_value(cache_key, challenge, expires_in_sec=ttl)
+        return {
+            "success": False,
+            "code": "too_many_attempts" if remaining == 0 else "invalid_code",
+            "attempts_remaining": remaining,
         }
+
+    payload = challenge["payload"]
+    payload = _validate_submission(
+        payload["email"], payload.get("full_name", ""), payload["subject"],
+        payload["description"], payload["office"], payload["request_type"],
     )
+    description_html = html.escape(payload["description"]).replace("\n", "<br>")
+    ticket = frappe.get_doc({
+        "doctype": "HD Ticket",
+        "subject": payload["subject"],
+        "description": description_html,
+        "raised_by": payload["email"],
+        "via_customer_portal": 1,
+        "office": payload["office"],
+        "request_type": payload["request_type"],
+    })
     ticket.flags.anonymous_submission = True
     ticket.flags.anonymous_requester_name = payload["full_name"]
     ticket.flags.anonymous_ticket_key = key
-    # This is a narrow server-side insert. Guest receives no DocType permission.
     ticket.insert(ignore_permissions=True)
 
-    # The native portal lifecycle skips its acknowledgement email. Send a
-    # guest-safe acknowledgement without an authenticated portal link.
     if (
         not frappe.flags.initial_sync
         and frappe.db.get_single_value("HD Settings", "send_acknowledgement_email")
     ):
         send_guest_acknowledgement_email(ticket)
-    # Keep the pending payload retryable if the DB transaction rolls back.
     frappe.db.after_commit.add(lambda: frappe.cache.delete_value(cache_key))
     return {"success": True, "ticket": ticket.name}
+
+
+@frappe.whitelist(allow_guest=True, methods=["POST"])
+@rate_limit(limit=5, seconds=60, user_based=False)
+def resend_guest_submission_otp(challenge_id: str) -> dict:
+    """Rotate the OTP subject to cooldown and resend limits."""
+    if not isinstance(challenge_id, str) or len(challenge_id) < 32 or len(challenge_id) > 128:
+        return {"success": False, "code": "invalid_or_expired"}
+    try:
+        lock = _acquire_challenge_lock(challenge_id)
+    except Exception:
+        frappe.log_error(message=frappe.get_traceback(), title="Guest ticket OTP resend lock unavailable")
+        return {"success": False, "code": "temporarily_unavailable"}
+    if not lock:
+        return {"success": False, "code": "processing"}
+
+    cache_key = _cache_key(challenge_id)
+    challenge = frappe.cache.get_value(cache_key)
+    if not isinstance(challenge, dict):
+        return {"success": False, "code": "invalid_or_expired"}
+    if challenge.get("resends", 0) >= MAX_OTP_RESENDS:
+        return {"success": False, "code": "resend_limit"}
+    wait = RESEND_COOLDOWN_SECONDS - int(time.time() - challenge.get("last_sent_at", 0))
+    if wait > 0:
+        return {"success": False, "code": "cooldown", "retry_after": wait}
+
+    otp = _new_otp()
+    updated = dict(challenge)
+    updated["otp_digest"] = _otp_digest(challenge_id, otp)
+    updated["attempts"] = 0
+    updated["resends"] = challenge.get("resends", 0) + 1
+    updated["last_sent_at"] = time.time()
+    ttl = max(1, int(OTP_TTL_SECONDS - (time.time() - challenge["created_at"])))
+    frappe.cache.set_value(cache_key, updated, expires_in_sec=ttl)
+    try:
+        frappe.sendmail(
+            recipients=[challenge["payload"]["email"]],
+            subject=_("Your new CBSUA Helpdesk verification code"),
+            template="guest_ticket_verification",
+            args=_guest_otp_email_context(challenge["payload"], otp),
+        )
+    except Exception:
+        frappe.cache.set_value(cache_key, challenge, expires_in_sec=ttl)
+        raise
+    return {"success": True, "message": _("A new verification code has been sent.")}
+
 
 
 def notify_anonymous_requester_status(doc, method=None) -> None:
