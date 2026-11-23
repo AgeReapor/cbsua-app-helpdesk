@@ -457,7 +457,7 @@ The receiving agent should replace/update this section at the next handoff:
   - Portal confirmation UI now separates expired/invalid from temporary service errors, supports retry for temporary/in-progress outcomes, and avoids telling a requester to create a duplicate request when the result is uncertain.
   - Added focused tests for malformed and expired tokens, canonical URL generation/encoding, and lock/cache service failure classification.
 - **Implementation commits:**
-  - Portal error-state UI: `17dba88734d8809a4f06f143ab5054662b4116d7`
+  - Portal error-state UI: `17dba88734d8809a4f06f143ab5054662b4116d7`, wording refinement `f047ffca3569c1916ea21a3b700f5fbb9ab18fc5`
   - Backend URL/rendering/error classification: `29f61d75db79bbe19a04dacc09299209fc388564`, then plain-text delivery integration `04f02e6653edc2bf79c01ef59f88dc07c09a475d`
   - Branded HTML template: `98f05dc7e5a74c1414060305a6e086920e157091`
   - Plain-text template: `20db53df72f69f3a83cf89f9d715205d15245b6d`
@@ -471,3 +471,5 @@ The receiving agent should replace/update this section at the next handoff:
 
 
 **Latest source commits after the initial email fix:** backend lock-release resilience `6f21a47ada046d953632007e2b1b6e5473804388`; expiry/cache outage tests `fb86a6e7d9fad5e2a7351e066fc98f4cd3814c66`. The email backend now loads both template formats through Frappe's `get_email_from_template` and passes the plain-text alternative as `text_content` to `frappe.sendmail`.
+
+**Latest feature branch head at handoff refresh:** `f047ffca3569c1916ea21a3b700f5fbb9ab18fc5`. This is the Helpdesk feature branch only; no changes were made to the framework or deployment repositories. The latest documentation refresh follows the latest implementation commits.
