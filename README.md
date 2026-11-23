@@ -59,6 +59,12 @@ pilot build --app helpdesk
 
 These commands assume the site already exists and that the bench has been initialized with the compatible CBSUA Frappe fork. Follow Pilot's own setup prompts and the deployment repository's current compatibility/source-lock baseline. Do not treat this short sequence as a complete production deployment guide.
 
+## Feature documentation
+
+- [Anonymous ticket submission and email communication](docs/features/anonymous-ticket-submission.md)
+- [CBSUA office-aware Helpdesk architecture](docs/architecture/office-aware-helpdesk.md)
+- [All documentation](docs/README.md)
+
 ## Production image and deployment
 
 Use [cbsua-app-helpdesk-deployment](https://github.com/AgeReapor/cbsua-app-helpdesk-deployment) for:
