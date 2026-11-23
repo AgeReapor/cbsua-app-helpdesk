@@ -1,8 +1,7 @@
-"""Guest-only ticket submission with email ownership verification.
+"""Guest-only ticket submission with email OTP ownership verification.
 
-The pending payload is short-lived and stored in the site cache. A random
-bearer token is emailed to the requester; only its SHA-256 digest is used as
-the cache key. Successful verification creates one native HD Ticket.
+Pending submissions and challenge-bound OTP digests are short-lived and stored
+in the site cache. Successful verification creates one native HD Ticket.
 """
 
 import hashlib
