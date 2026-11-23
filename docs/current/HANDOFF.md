@@ -473,3 +473,5 @@ The receiving agent should replace/update this section at the next handoff:
 **Latest source commits after the initial email fix:** backend lock-release resilience `6f21a47ada046d953632007e2b1b6e5473804388`; expiry/cache outage tests `fb86a6e7d9fad5e2a7351e066fc98f4cd3814c66`. The email backend now loads both template formats through Frappe's `get_email_from_template` and passes the plain-text alternative as `text_content` to `frappe.sendmail`.
 
 **Latest feature branch head at handoff refresh:** `f047ffca3569c1916ea21a3b700f5fbb9ab18fc5`. This is the Helpdesk feature branch only; no changes were made to the framework or deployment repositories. The latest documentation refresh follows the latest implementation commits.
+
+**Final source formatting commits:** backend email-renderer signature `7b6fc8e76378f661633ccd95263ba10bec6548b2`; focused test formatting `d098e6b3cdeae813c6cdaf29fb4c719591c7cc60`. The working branch head before this handoff-document refresh was `d098e6b3cdeae813c6cdaf29fb4c719591c7cc60`.
