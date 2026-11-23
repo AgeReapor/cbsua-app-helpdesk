@@ -81,7 +81,7 @@ The implemented source-level flow is (runtime verification still pending):
 5. When the knowledge base is public, Guests may browse it, but they must not see authenticated-only `Raise a ticket` or `View my tickets` actions. The anonymous entry link should not be duplicated as a prominent top-of-homepage button.
 6. Authenticated visitors retain the existing authenticated ticket creation and ticket-list actions. The authenticated `/help/tickets/new` and `/help/my-tickets` routes remain protected.
 
-The login CTA must be conditional on a Helpdesk-origin login context. The Frappe login page is shared platform UI; adding an unconditional CBSUA Helpdesk link would leak this product-specific action into unrelated login flows.
+The login CTA is global to the CBSUA deployment's shared login page. Confirm that this deployment is not serving independently branded tenants before rollout.
 
 The guest route is registered in `shared/src/portalRoutes.ts` and the Studio page is configured with `allow_guest: 1`. Both redirect guards now exempt only `/help/guest/new` (allowing a trailing slash); all other private-KB Guest routes remain subject to login. This is source-implemented but not yet browser-validated.
 
@@ -256,6 +256,6 @@ The previously documented backend status remains unchanged: focused source-level
 
 ### Next planned login-page UX
 
-The next UI slice is the shared CBSUA login-page redesign documented in [Current Architecture](architecture.md) and [Agent Handoff](HANDOFF.md): show **Submit a ticket without logging in** directly below **Continue** and **Login with Email Link** on `/login`, replace the welcome heading with **Welcome back to CBSUA Helpdesk**, and use the existing CBSUA logo/favicon assets. This supersedes the earlier Helpdesk-origin-only visibility rule for the CTA. Coordinate the template/context work in `cbsua-app-frappe` with the canonical brand assets in this repository. Keep the guest route and ticket authorization boundaries unchanged.
+The shared CBSUA login-page redesign is now implemented in source documented in [Current Architecture](architecture.md) and [Agent Handoff](HANDOFF.md): show **Submit a ticket without logging in** directly below **Continue** and **Login with Email Link** on `/login`, replace the welcome heading with **Welcome back to CBSUA Helpdesk**, and use the existing CBSUA logo/favicon assets. This supersedes the earlier Helpdesk-origin-only visibility rule for the CTA. Coordinate the template/context work in `cbsua-app-frappe` with the canonical brand assets in this repository. Keep the guest route and ticket authorization boundaries unchanged.
 
-**Suggested next task for the receiving agent:** implement this shared login-page UX after verifying the current Helpdesk and Frappe branch heads, the exact login template, asset-serving paths, and the current source of the CBSUA brand assets. Do not change deployment source locks in this task; runtime validation remains required.
+**Suggested next task for the receiving agent:** validate the implemented login-page UX in a compatible Frappe v17 bench, including the login variants, static asset delivery, guest-route access matrix, and authenticated redirects. Do not change deployment source locks in this task; runtime validation remains required.
