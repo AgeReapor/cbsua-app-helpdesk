@@ -1,6 +1,7 @@
 """Focused tests for the anonymous ticket submission boundary."""
 
 from unittest.mock import patch
+from urllib.parse import quote
 from uuid import UUID
 
 import frappe
@@ -53,7 +54,7 @@ class TestAnonymousTicketHelpers(FrappeTestCase):
 
         self.assertEqual(
             get_url.call_args.args[0],
-            "/help/guest/new?verify=" + __import__("urllib.parse").parse.quote(token, safe=""),
+            "/help/guest/new?verify=" + quote(token, safe=""),
         )
         self.assertFalse(get_url.call_args.kwargs["allow_header_override"])
         self.assertEqual(result, get_url.return_value)
