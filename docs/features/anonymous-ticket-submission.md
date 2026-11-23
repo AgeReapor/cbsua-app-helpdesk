@@ -164,3 +164,14 @@ The anonymous-ticket mixin now overrides `tag_first_ticket()` to skip this cosme
 **Commits:** `0d3065d82bdd85369982dda21c983cf5c8004cbc` (implementation) and `ba0be55d2a997288b8a4cced8ded40257e3db33b` (regression test).
 
 **Validation still required:** run `helpdesk.tests.test_anonymous_tickets` on a disposable Frappe v17-compatible bench; verify correct OTP creates exactly one HD Ticket in Pilot; retry the same challenge to confirm idempotency; confirm Guest cannot read or modify tickets; and confirm authenticated first-ticket tagging still works. The root cause is source-supported but not yet confirmed by a live endpoint traceback or post-patch Pilot test.
+
+
+## Pilot end-to-end status and outbound tracking pixel (2026-11-23)
+
+**Pilot confirmation:** with a fresh internet connection, anonymous ticket submission, OTP verification, native HD Ticket creation, and agent replies to the submitted customer email have been confirmed working end to end. This is no longer merely source-level implementation status for the tested Pilot environment.
+
+The remaining visible email issue is an automatically appended image URL targeting Frappe's `mark_email_as_seen` endpoint on `cbsua-helpdesk.localhost`. This is the Email Queue open-tracking pixel, not an image embedded by the anonymous-ticket feature or the agent's reply content. In the CBSUA Frappe fork, `EmailQueue.get_tracker_str()` injects it when the outgoing Email Account's `track_email_status` setting is enabled and the message is linked to a Communication. Gmail's `googleusercontent.com` URL is an image proxy/rewrite; the original URL remains the local-only Frappe host.
+
+To remove the pixel, disable **Track Email Status** on the outgoing Email Account used for agent replies; this affects all outgoing messages sent through that account. If email-open tracking is desired, instead configure the Frappe site's canonical public HTTPS hostname (`host_name` / site URL configuration), which makes the tracker URL externally accessible but retains the pixel. This is an Email Account/deployment configuration decision; do not modify the anonymous reply template to strip it.
+
+**Follow-up validation:** apply the chosen Pilot configuration, send a new agent reply, and inspect the raw message source. Confirm either that no `mark_email_as_seen` image is emitted (tracking disabled) or that its URL uses the externally reachable HTTPS hostname (tracking retained).
